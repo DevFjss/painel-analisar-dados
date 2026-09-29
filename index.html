@@ -1,0 +1,2305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matcher de Planilhas — Comparação Escolar & IA</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body { margin: 0; background: #f4f6fa; color: #1f2937; padding: 20px; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  .sub { font-size: 13px; color: #6b7280; margin-bottom: 16px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background: #fff; border-radius: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .card h2 { font-size: 14px; margin: 0 0 10px; color: #374151; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .card h2 .badge-file { font-size: 11px; color: #6b7280; font-weight: 400; }
+  .card h2 .h2-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .sheet-badge {
+    display: none; margin-bottom: 10px;
+    background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px;
+    padding: 8px 12px; font-size: 12px; color: #075985;
+    align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+  }
+  .sheet-badge.visible { display: flex; }
+  .sheet-badge .sb-left { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+  .sheet-badge .sb-left .badge-count {
+    background: #0284c7; color: #fff;
+    font-size: 10px; font-weight: 800;
+    padding: 2px 7px; border-radius: 999px;
+  }
+  .sheet-badge .sb-right { display: flex; gap: 6px; }
+  .sheet-badge button {
+    font-size: 11px; padding: 5px 10px; font-weight: 700;
+    background: #0284c7;
+  }
+  .sheet-badge button:hover { background: #0369a1; }
+
+  input[type=file] { display: block; margin-bottom: 10px; font-size: 13px; width: 100%; }
+  label { font-size: 13px; display: block; margin: 8px 0 4px; font-weight: 600; }
+  select, input[type=text], input[type=number], input[type=password] {
+    width: 100%; padding: 7px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px;
+  }
+  button { background: #2563eb; color: #fff; border: 0; padding: 9px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: 600; }
+  button:disabled { background: #93c5fd; cursor: not-allowed; }
+  button.secondary { background: #059669; }
+
+  .btn-limpar-arquivo {
+    background: #dc2626; color: #fff; border: 0;
+    padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 700;
+    cursor: pointer; display: none; align-items: center; gap: 4px;
+    line-height: 1.2; transition: background .15s;
+  }
+  .btn-limpar-arquivo:hover { background: #b91c1c; }
+  .btn-limpar-arquivo.visible { display: inline-flex; }
+
+  .actions { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+
+  .top-actions {
+    background: #fff; border-radius: 10px; padding: 14px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    border-left: 4px solid #2563eb;
+    margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+  }
+  .top-actions .ta-info { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 13px; color: #374151; }
+  .top-actions .ta-info .ta-title { font-weight: 800; color: #1e3a8a; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+  .top-actions .ta-hint { font-size: 12px; color: #6b7280; }
+  .top-actions .ta-hint b { color: #2563eb; }
+  .top-actions .ta-buttons { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .top-actions .ta-buttons button { padding: 11px 22px; font-size: 14px; font-weight: 700; }
+  .top-actions .ta-buttons button#btnComparar:not(:disabled) { background: #2563eb; box-shadow: 0 2px 8px rgba(37,99,235,.35); }
+  .top-actions .ta-buttons button#btnExportar:not(:disabled) { box-shadow: 0 2px 8px rgba(5,150,105,.35); }
+
+  .fill-box {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-radius: 10px; padding: 16px 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    margin-bottom: 14px; border-left: 4px solid #f59e0b;
+    display: none;
+  }
+  .fill-box.visible { display: block; }
+  .fill-box h2 { font-size: 15px; margin: 0 0 6px; color: #92400e; display: flex; align-items: center; gap: 8px; }
+  .fill-box .fill-desc { font-size: 12px; color: #78350f; margin-bottom: 12px; line-height: 1.6; }
+  .fill-box .fill-desc b { color: #92400e; }
+
+  .fill-map-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  .fill-map-table th { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; padding: 8px 10px; text-align: left; border-bottom: 2px solid #fde68a; }
+  .fill-map-table td { padding: 8px 10px; font-size: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+  .fill-map-table tr:last-child td { border-bottom: 0; }
+  .fill-map-table tr.chave-row { background: #fffbeb; }
+  .fill-map-table tr.chave-row td { font-weight: 700; color: #92400e; }
+  .fill-map-table td.col-a { color: #065f46; font-weight: 600; }
+  .fill-map-table td.col-b { color: #5b21b6; font-weight: 600; }
+  .fill-map-table td.arrow { text-align: center; font-size: 18px; color: #f59e0b; width: 40px; }
+  .fill-map-table select { width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 5px; font-size: 12px; background: #fff; }
+  .fill-map-table select:disabled { background: #f3f4f6; color: #9ca3af; }
+
+  .fill-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .fill-status { margin-top: 10px; padding: 8px 12px; border-radius: 6px; font-size: 12px; background: #fff; border: 1px solid #fde68a; color: #78350f; }
+  .fill-status b { color: #92400e; }
+  .fill-status .ok { color: #059669; }
+  .fill-status .warn { color: #d97706; }
+
+  .preview-wrap { max-height: 420px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px; }
+  .preview-wrap table { border-collapse: collapse; width: 100%; font-size: 11px; }
+  .preview-wrap th {
+    background: #f9fafb; padding: 6px 8px; position: sticky; top: 0; z-index: 3;
+    text-align: left; font-weight: 600; vertical-align: top; border-bottom: 2px solid #e5e7eb;
+    min-width: 140px;
+  }
+  .preview-wrap td { padding: 4px 8px; border-bottom: 1px solid #f1f5f9; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+  .preview-wrap tr.removida td { background: #fef2f2; opacity: .45; text-decoration: line-through; }
+  .chk-cell { text-align: center; width: 34px; background: #f9fafb; position: sticky; left: 0; z-index: 2; }
+  .preview-wrap th.chk-cell { z-index: 4; min-width: 34px; }
+  .chk-cell input { width: 15px; height: 15px; cursor: pointer; }
+
+  .col-header { display: flex; flex-direction: column; gap: 5px; }
+  .col-name { font-weight: 700; font-size: 11px; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .marcacao-group { display: flex; gap: 4px; flex-wrap: wrap; }
+  .marcacao-item {
+    flex: 1; min-width: 40px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f3f4f6; border: 2px solid #d1d5db;
+    padding: 5px 6px; border-radius: 5px; cursor: pointer;
+    font-size: 10px; font-weight: 800; color: #9ca3af;
+    transition: all .15s; user-select: none; letter-spacing: .4px;
+  }
+  .marcacao-item:hover { background: #e5e7eb; border-color: #9ca3af; color: #4b5563; }
+  .marcacao-item input { display: none; }
+  .marcacao-item.checked {
+    background: #2563eb; border-color: #1e40af; color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(37,99,235,.2);
+  }
+  .marcacao-item.checked:hover { background: #1d4ed8; border-color: #1e3a8a; color: #fff; }
+  .marcacao-item.key.checked {
+    background: #f59e0b; border-color: #b45309; color: #fff;
+    box-shadow: 0 0 0 2px rgba(245,158,11,.25);
+  }
+  .marcacao-item.key.checked:hover { background: #d97706; border-color: #92400e; }
+  .marcacao-item.traz.checked {
+    background: #059669; border-color: #047857; color: #fff;
+    box-shadow: 0 0 0 2px rgba(5,150,105,.25);
+  }
+  .marcacao-item.traz.checked:hover { background: #047857; border-color: #065f46; }
+  .marcacao-item.recebe.checked {
+    background: #7c3aed; border-color: #5b21b6; color: #fff;
+    box-shadow: 0 0 0 2px rgba(124,58,237,.25);
+  }
+  .marcacao-item.recebe.checked:hover { background: #6d28d9; border-color: #4c1d95; }
+
+  th.col-mun    { background: #dbeafe; border-bottom-color: #2563eb; }
+  th.col-nome   { background: #dbeafe; border-bottom-color: #2563eb; }
+  th.col-out    { background: #dbeafe; border-bottom-color: #2563eb; }
+  th.col-key    { background: #fef3c7; border-bottom-color: #f59e0b; }
+  th.col-traz   { background: #d1fae5; border-bottom-color: #059669; }
+  th.col-recebe { background: #ede9fe; border-bottom-color: #7c3aed; }
+
+  .col-filter {
+    font-size: 11px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 4px;
+    width: 100%; font-weight: 400; background: #fff;
+  }
+  .col-filter:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
+
+  .preview-stats { font-size: 12px; color: #6b7280; margin-top: 6px; }
+  .preview-stats b { color: #2563eb; }
+  .preview-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .preview-actions button { font-size: 11px; padding: 5px 10px; font-weight: 600; }
+
+  .config-box { background: #fff; border-radius: 10px; padding: 14px 18px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-top: 18px; }
+  .config-box h2 { font-size: 14px; margin: 0 0 10px; color: #374151; }
+  .config-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: start; }
+  @media (max-width: 800px) { .config-grid { grid-template-columns: 1fr; } .config-arrow { transform: rotate(90deg); } }
+  .config-side { background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 8px; padding: 10px; }
+  .config-side.a { border-color: #93c5fd; }
+  .config-side.b { border-color: #a7f3d0; }
+  .config-side h3 { font-size: 11px; margin: 0 0 6px; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; }
+  .config-line { font-size: 12px; margin: 3px 0; }
+  .config-line b { color: #111827; }
+  .config-line .vazio { color: #9ca3af; font-style: italic; font-weight: 400; }
+  .config-arrow { font-size: 22px; color: #2563eb; text-align: center; align-self: center; }
+
+  .ai-box { background: #000; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-top: 18px; border-left: 4px solid #8b5cf6; color: #e5e7eb; }
+  .ai-box h2 { font-size: 14px; margin: 0 0 10px; color: #f9fafb; display: flex; align-items: center; gap: 6px; }
+  .ai-box label { color: #e5e7eb; }
+  .ai-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 12px; margin-bottom: 12px; }
+  @media (max-width: 768px) { .ai-grid { grid-template-columns: 1fr; } }
+  .ai-box select, .ai-box input[type=text], .ai-box input[type=number], .ai-box textarea { background: #111827; color: #f9fafb; border: 1px solid #374151; }
+  .ai-box select:focus, .ai-box input:focus, .ai-box textarea:focus { outline: 2px solid #8b5cf6; border-color: #8b5cf6; }
+  .ai-output { background: #0b1220; color: #f8fafc; font-family: monospace; font-size: 12px; padding: 12px; border-radius: 6px; max-height: 250px; overflow-y: auto; margin-top: 10px; white-space: pre-wrap; word-break: break-word; border: 1px solid #1f2937; }
+
+  .results { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-top: 18px; }
+  .results h2 { font-size: 14px; margin: 0 0 10px; color: #374151; }
+
+  .table-wrap { max-height: 500px; overflow: auto; border: 1px solid #e5e7eb; border-radius: 6px; margin-top: 10px; }
+  .table-wrap table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  .table-wrap th, .table-wrap td { padding: 5px 9px; border-bottom: 1px solid #f1f5f9; text-align: left; white-space: nowrap; }
+
+  .table-wrap thead tr.grupo-row th {
+    position: sticky; top: 0; z-index: 3; text-align: center;
+    font-size: 11px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; padding: 6px 8px;
+    border-bottom: 2px solid #fff;
+  }
+  .table-wrap thead tr.grupo-row th.g-b { background: #5107b9; color: #eff6f7; border-bottom-color: #93c5fd; }
+  .table-wrap thead tr.grupo-row th.g-a { background: #d1fae5; color: #065f46; border-bottom-color: #6ee7b7; }
+  .table-wrap thead tr.grupo-row th.g-m { background: #e7ac81; color: #0e0e0f; border-bottom-color: #c4b5fd; }
+  .table-wrap thead tr.grupo-row th.g-k { background: #f59e0b; color: #fff; border-bottom-color: #fbbf24; }
+  .table-wrap thead tr.grupo-row th.g-s { background: #0891b2; color: #fff; border-bottom-color: #67e8f9; }
+
+  .table-wrap thead tr.nomes-row th { top: 30px; z-index: 2; position: sticky; background: #f9fafb; font-weight: 600; }
+  .table-wrap thead tr.nomes-row th.tb-b { background: #eff6ff; color: #1e40af; }
+  .table-wrap thead tr.nomes-row th.tb-a { background: #f0fdf4; color: #065f46; }
+  .table-wrap thead tr.nomes-row th.tb-m { background: #f5f3ff; color: #5b21b6; }
+  .table-wrap thead tr.nomes-row th.tb-k { background: #fef3c7; color: #92400e; }
+  .table-wrap thead tr.nomes-row th.tb-s { background: #ecfeff; color: #155e75; }
+
+  .table-wrap .badge-origem { display: inline-block; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; margin-right: 5px; vertical-align: middle; letter-spacing: .3px; text-transform: uppercase; }
+  .badge-origem.b { background: #2563eb; color: #fff; }
+  .badge-origem.a { background: #059669; color: #fff; }
+  .badge-origem.m { background: #7c3aed; color: #fff; }
+  .badge-origem.k { background: #f59e0b; color: #fff; }
+  .badge-origem.s { background: #0891b2; color: #fff; }
+
+  tr.exato td { background: #ecfdf5; }
+  tr.fuzzy td { background: #fffbeb; }
+  tr.nomatch td { background: #fef2f2; }
+  tr.sugestao td { background: #eff6ff; }
+  tr.subseq td { background: #f5f3ff; }
+  tr.mun-diferente td { background: #fee2e2; color: #991b1b; }
+  tr.preenchido td { background: #fffbeb; }
+  tr.nao-localizado td { background: #fee2e2; }
+  tr.codigo-vazio td { background: #fef3c7; }
+
+  .st { display: inline-block; font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 999px; letter-spacing: .3px; white-space: nowrap; }
+  .st-ok    { background: #059669; color: #fff; }
+  .st-fail  { background: #dc2626; color: #fff; }
+  .st-warn  { background: #d97706; color: #fff; }
+  .st-info  { background: #2563eb; color: #fff; }
+  .st-dup   { background: #7c3aed; color: #fff; }
+
+  .status-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 10px 0; padding: 10px 14px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; }
+  .status-bar label { margin: 0; font-weight: 700; font-size: 12px; color: #374151; }
+  .status-bar select { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; font-weight: 600; background: #fff; min-width: 240px; }
+  .status-bar .sb-count { font-size: 12px; color: #6b7280; margin-left: auto; }
+  .status-bar .sb-count b { color: #2563eb; }
+
+  .stats { display: flex; gap: 16px; font-size: 13px; margin-top: 8px; flex-wrap: wrap; }
+  .stats b { color: #2563eb; }
+
+  .multi-filter { position: relative; min-width: 220px; }
+  .multi-filter-btn { width:100%; text-align:left; background:#fff; color:#374151; border:1px solid #d1d5db; padding:8px 10px; border-radius:6px; font-weight:500; }
+  .multi-filter-btn:hover { background:#f9fafb; }
+  .multi-filter-menu { display:none; position:absolute; top:calc(100% + 4px); left:0; width:100%; max-height:320px; overflow:auto; background:#fff; border:1px solid #d1d5db; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.14); z-index:20; padding:8px; }
+  .multi-filter.open .multi-filter-menu { display:block; }
+  .multi-filter-search { width:100%; padding:7px; border:1px solid #d1d5db; border-radius:5px; margin-bottom:7px; }
+  .multi-filter-actions { display:flex; gap:5px; margin-bottom:7px; }
+  .multi-filter-actions button { flex:1; padding:5px 7px; font-size:11px; }
+  .multi-option { display:flex; align-items:center; gap:7px; padding:5px 4px; font-size:12px; cursor:pointer; border-radius:4px; }
+  .multi-option:hover { background:#f3f4f6; }
+  .multi-option input { width:15px; height:15px; }
+  .filtro-resumo { color:#6b7280; font-size:11px; margin-top:5px; }
+
+  .filtros { display: flex; gap: 12px; margin: 10px 0; align-items: center; flex-wrap: wrap; }
+  .filtros label { margin: 0; font-weight: 400; font-size: 13px; }
+
+  details { margin-top: 12px; font-size: 13px; background: #fff; border-radius: 10px; padding: 10px 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  summary { cursor: pointer; font-weight: 600; color: #374151; }
+  textarea { width: 100%; min-height: 80px; font-family: monospace; font-size: 12px; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; margin-top: 4px; }
+
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #16a34a; color: #fff; padding: 12px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,.2); z-index: 9999; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .toast.erro { background: #dc2626; }
+
+  .legenda { display: flex; gap: 14px; font-size: 11px; color: #6b7280; margin-top: 6px; flex-wrap: wrap; }
+  .legenda span { display: flex; align-items: center; gap: 4px; }
+  .legenda .dot { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .legenda .dot.on { background: #2563eb; border: 1px solid #1e40af; }
+  .legenda .dot.off { background: #f3f4f6; border: 1px solid #d1d5db; }
+  .legenda .dot.a { background: #059669; border: 1px solid #047857; }
+  .legenda .dot.b { background: #2563eb; border: 1px solid #1e40af; }
+  .legenda .dot.m { background: #7c3aed; border: 1px solid #5b21b6; }
+  .legenda .dot.k { background: #f59e0b; border: 1px solid #b45309; }
+  .legenda .dot.t { background: #059669; border: 1px solid #047857; }
+  .legenda .dot.r { background: #7c3aed; border: 1px solid #5b21b6; }
+
+  .niveis-box { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-top: 18px; border-left: 4px solid #2563eb; }
+  .niveis-box h2 { font-size: 15px; margin: 0 0 12px; color: #1e40af; }
+  .niveis-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .nivel-card { border-radius: 8px; padding: 12px; border-left: 4px solid #ccc; background: #fafafa; font-size: 12px; line-height: 1.5; }
+  .nivel-card.exato  { border-left-color: #059669; background: #ecfdf5; }
+  .nivel-card.fuzzy  { border-left-color: #d97706; background: #fffbeb; }
+  .nivel-card.subseq { border-left-color: #7c3aed; background: #f5f3ff; }
+  .nivel-card.sug    { border-left-color: #2563eb; background: #eff6ff; }
+  .nivel-card.no     { border-left-color: #dc2626; background: #fef2f2; }
+  .nivel-card.mun    { border-left-color: #991b1b; background: #fee2e2; }
+  .nivel-card.key    { border-left-color: #f59e0b; background: #fffbeb; }
+  .nivel-card h3 { margin: 0 0 6px; font-size: 13px; }
+  .nivel-card ul { margin: 6px 0 0; padding-left: 18px; }
+  .nivel-card li { margin: 3px 0; }
+
+  .resumo-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 14px 0 6px; }
+  @media (max-width: 900px) { .resumo-cards { grid-template-columns: 1fr; } }
+
+  .resumo-card { border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px; border-left: 6px solid #ccc; background: #fafafa; box-shadow: 0 1px 4px rgba(0,0,0,.06); transition: transform .15s ease; }
+  .resumo-card:hover { transform: translateY(-2px); }
+  .resumo-card.ok { border-left-color: #059669; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); }
+  .resumo-card.fail { border-left-color: #dc2626; background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); }
+  .resumo-card.munfail { border-left-color: #991b1b; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); }
+  .resumo-card .rc-info { display: flex; flex-direction: column; gap: 2px; }
+  .resumo-card .rc-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+  .resumo-card.ok .rc-label { color: #065f46; }
+  .resumo-card.fail .rc-label { color: #991b1b; }
+  .resumo-card.munfail .rc-label { color: #7f1d1d; }
+  .resumo-card .rc-desc { font-size: 11px; color: #6b7280; }
+  .resumo-card .rc-num { font-size: 34px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+  .resumo-card.ok .rc-num { color: #059669; }
+  .resumo-card.fail .rc-num { color: #dc2626; }
+  .resumo-card.munfail .rc-num { color: #991b1b; }
+  .resumo-card .rc-pct { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: rgba(255,255,255,.7); }
+  .resumo-card.ok .rc-pct { color: #065f46; }
+  .resumo-card.fail .rc-pct { color: #991b1b; }
+  .resumo-card.munfail .rc-pct { color: #7f1d1d; }
+
+  /* ===== BARRA DE PROGRESSO — TOTALMENTE AZUL, SEMPRE VISÍVEL ===== */
+  .progress-box {
+    display: block;
+    margin-top: 16px; padding: 14px 16px;
+    background: #eff6ff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    border: 2px solid #2563eb;
+  }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: #1e3a8a; }
+  .progress-status { display: flex; align-items: center; gap: 8px; }
+  .progress-status .spinner { width: 14px; height: 14px; border: 2px solid #bfdbfe; border-top-color: #2563eb; border-radius: 50%; animation: spin .8s linear infinite; }
+  .progress-box.done .spinner { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress-pct { font-family: monospace; font-size: 15px; font-weight: 800; color: #2563eb; }
+  .progress-track { width: 100%; height: 24px; background: #dbeafe; border-radius: 999px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,.08); }
+  .progress-fill {
+    height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+    transition: width .18s ease-out;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 10px; color: #fff; font-size: 11px; font-weight: 700;
+    font-family: monospace; white-space: nowrap; overflow: hidden;
+  }
+  @keyframes shimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+  .progress-sub { font-size: 12px; color: #1e40af; margin-top: 8px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; font-weight: 500; }
+  .progress-sub b { color: #1e3a8a; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .45); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.visible { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 100%; max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; }
+  .modal-header { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 16px 22px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid #bfdbfe; }
+  .modal-header .mh-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .modal-header .mh-icon { font-size: 22px; }
+  .modal-header h3 { font-size: 17px; margin: 0; color: #1e3a8a; font-weight: 700; }
+  .modal-header .badge-nte { background: #2563eb; color: #fff; font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 999px; letter-spacing: .3px; text-transform: uppercase; }
+  .modal-header .btn-fechar { background: transparent; color: #1e40af; font-size: 22px; line-height: 1; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-weight: 400; }
+  .modal-header .btn-fechar:hover { background: rgba(255,255,255,.6); }
+  .modal-body { padding: 18px 22px; overflow-y: auto; flex: 1; }
+  .modal-sheet-picker { background: #f0f9ff; border: 2px solid #bae6fd; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; }
+  .modal-sheet-picker label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: #075985; margin: 0 0 8px; }
+  .modal-sheet-picker label .badge-count { background: #0284c7; color: #fff; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; letter-spacing: .3px; }
+  .modal-sheet-picker select { width: 100%; padding: 10px 12px; border: 2px solid #7dd3fc; border-radius: 6px; font-size: 14px; font-weight: 700; color: #0c4a6e; background: #fff; cursor: pointer; }
+  .modal-sheet-picker select:focus { outline: 2px solid #0ea5e9; border-color: #0ea5e9; }
+  .modal-sheet-picker .sheet-info { font-size: 11px; color: #0369a1; margin-top: 6px; }
+  .modal-info { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.7; color: #1e40af; }
+  .modal-info b { color: #1e3a8a; }
+  .modal-info .muted { color: #6b7280; }
+  .modal-lista-titulo { font-size: 12px; font-weight: 800; letter-spacing: 1px; color: #374151; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .modal-lista-titulo .ml-count { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: none; letter-spacing: 0; }
+  .modal-lista-titulo .ml-count b { color: #2563eb; }
+  .col-lista { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+  .col-lista-head { background: #f9fafb; display: grid; grid-template-columns: 44px 1fr 2fr; align-items: center; padding: 10px 14px; font-size: 11px; font-weight: 800; letter-spacing: .5px; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb; }
+  .col-lista-body { max-height: 46vh; overflow-y: auto; }
+  .col-item { display: grid; grid-template-columns: 44px 1fr 2fr; align-items: center; padding: 11px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13px; cursor: pointer; transition: background .12s; }
+  .col-item:last-child { border-bottom: 0; }
+  .col-item:hover { background: #f9fafb; }
+  .col-item.marcada { background: #eff6ff; }
+  .col-item.marcada:hover { background: #dbeafe; }
+  .col-item input[type=checkbox] { width: 18px; height: 18px; cursor: pointer; accent-color: #2563eb; }
+  .col-item .ci-nome { font-weight: 700; color: #111827; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .col-item .ci-badge { font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px; letter-spacing: .4px; text-transform: uppercase; color: #fff; }
+  .col-item .ci-badge.nte { background: #2563eb; }
+  .col-item .ci-badge.municipio { background: #2563eb; }
+  .col-item .ci-badge.codigo { background: #f59e0b; }
+  .col-item .ci-badge.escola { background: #059669; }
+  .col-item .ci-amostra { color: #6b7280; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .modal-footer { padding: 14px 22px; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .modal-footer .mf-left, .modal-footer .mf-right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .modal-footer .btn-ghost { background: #fff; color: #374151; border: 1px solid #d1d5db; padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+  .modal-footer .btn-ghost:hover { background: #f3f4f6; }
+  .modal-footer .btn-sugestao { background: #fff; color: #d97706; border: 1px solid #fde68a; padding: 8px 14px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+  .modal-footer .btn-sugestao:hover { background: #fffbeb; }
+  .modal-footer .btn-cancelar { background: #fff; color: #374151; border: 1px solid #d1d5db; padding: 9px 18px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+  .modal-footer .btn-cancelar:hover { background: #f3f4f6; }
+  .modal-footer .btn-confirmar { background: #059669; color: #fff; border: 0; padding: 9px 20px; font-size: 13px; font-weight: 700; border-radius: 6px; cursor: pointer; }
+  .modal-footer .btn-confirmar:hover { background: #047857; }
+  .modal-footer .btn-confirmar:disabled { background: #93c5fd; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<h1>🎯 Matcher de Planilhas — Comparação Escolar & IA</h1>
+<div class="sub">
+  1) Suba as duas planilhas · 2) Escolha a <b>aba</b> e as colunas · 3) Marque <b>MUN / ESC / SEC / 🔑 CHAVE</b> e, se quiser trazer dados de A→B, marque <b>📤 TRAZ</b> (em A) e <b>📥 RECEBE</b> (em B).
+  <div class="legenda">
+    <span><span class="dot off"></span> Não marcado</span>
+    <span><span class="dot on"></span> MUN/ESC/SEC (azul)</span>
+    <span><span class="dot k"></span> 🔑 CHAVE (laranja)</span>
+    <span><span class="dot t"></span> 📤 TRAZ (verde) — em A</span>
+    <span><span class="dot r"></span> 📥 RECEBE (roxo) — em B</span>
+  </div>
+</div>
+
+<div class="top-actions">
+  <div class="ta-info">
+    <span class="ta-title">⚡ Ações</span>
+    <span class="ta-hint" id="taHint">Os botões abaixo ativam quando as marcações mínimas estiverem prontas.</span>
+  </div>
+  <div class="ta-buttons">
+    <button id="btnComparar" disabled>⚡ Comparar (Fuzzy)</button>
+    <button id="btnExportar" class="secondary" disabled>⬇️ Exportar XLSX (novo)</button>
+  </div>
+</div>
+
+<div class="fill-box" id="fillBox">
+  <h2>🔑 Modo Preenchimento por Chave (mapeamento A → B)</h2>
+  <div class="fill-desc">
+    Você marcou 🔑 CHAVE nas duas planilhas. Agora faça o <b>pareamento explícito</b> das colunas:
+    cada coluna <b>📤 TRAZ</b> (marcada em A) será copiada para uma coluna <b>📥 RECEBE</b> (marcada em B), casando pelo valor da chave.
+    Quando a chave de B <b>não existir</b> em A, o destino recebe <b>"NÃO LOCALIZADO"</b>.
+  </div>
+
+  <table class="fill-map-table">
+    <thead>
+      <tr>
+        <th style="width:42%;">📤 Coluna em A (traz)</th>
+        <th style="width:8%;"></th>
+        <th style="width:42%;">📥 Coluna em B (recebe)</th>
+        <th style="width:8%;"></th>
+      </tr>
+    </thead>
+    <tbody id="fillMapBody">
+      <tr class="chave-row">
+        <td class="col-a">🔑 <span id="fillKeyA">—</span></td>
+        <td class="arrow">⟷</td>
+        <td class="col-b">🔑 <span id="fillKeyB">—</span></td>
+        <td class="arrow">🔑</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="fill-status" id="fillStatus">—</div>
+
+  <div class="fill-actions">
+    <button id="btnPreencher" style="background:#f59e0b;" disabled>⚡ Preencher B a partir de A (por chave)</button>
+    <button id="btnLimparPreenchimento" style="background:#6b7280;">🧹 Limpar pareamento</button>
+    <button id="btnExportarSobreB" style="background:#dc2626;" disabled>📥 Exportar sobre B original (com formatação)</button>
+  </div>
+
+  <!-- BARRA DE PROGRESSO — TOTALMENTE AZUL, SEMPRE VISÍVEL -->
+  <div class="progress-box" id="progressBox">
+    <div class="progress-header">
+      <div class="progress-status">
+        <div class="spinner"></div>
+        <span id="progressLabel">Aguardando clique em "Preencher B a partir de A"...</span>
+      </div>
+      <span class="progress-pct" id="progressPct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-sub">
+      <span id="progressSubLeft">Pronto para iniciar</span>
+      <span id="progressSubRight">0 / 0 linhas</span>
+    </div>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>
+      <span>📄 Planilha A (fonte)</span>
+      <span class="h2-right">
+        <span class="badge-file" id="fileAName"></span>
+        <button type="button" class="btn-limpar-arquivo" id="btnLimparA" title="Limpar planilha A para carregar outra">🗑️ Limpar</button>
+      </span>
+    </h2>
+    <input type="file" id="fileA" accept=".xlsx,.xlsm,.xlsb,.xls">
+
+    <div class="sheet-badge" id="sheetBadgeA">
+      <div class="sb-left">
+        📑 Aba atual: <b id="sheetBadgeAName">—</b>
+        <span class="badge-count" id="sheetBadgeACount">0 abas</span>
+      </div>
+      <div class="sb-right">
+        <button type="button" id="btnTrocarAbaA">🔄 Trocar aba</button>
+        <button type="button" id="btnTrocarColunasA" style="background:#6366f1;">🎛️ Trocar colunas</button>
+      </div>
+    </div>
+
+    <div class="preview-wrap" id="prevA" style="display:none;"><table id="tableA"></table></div>
+    <div class="preview-stats" id="statsA"></div>
+    <div class="preview-actions" id="actionsA" style="display:none;">
+      <button class="secondary" data-act="marcar-todas" data-side="A">☑ Marcar todas</button>
+      <button class="secondary" data-act="desmarcar" data-side="A">☐ Desmarcar</button>
+      <button style="background:#f59e0b" data-act="limpar-espaco" data-side="A">🧹 Espaços</button>
+      <button style="background:#f59e0b" data-act="limpar-especial" data-side="A">🧹 Especiais</button>
+      <button style="background:#dc2626" data-act="limpar-tudo" data-side="A">🧹 Tudo</button>
+      <button style="background:#0891b2" data-act="desfazer" data-side="A">↩️ Desfazer</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>
+      <span>📄 Planilha B (destino)</span>
+      <span class="h2-right">
+        <span class="badge-file" id="fileBName"></span>
+        <button type="button" class="btn-limpar-arquivo" id="btnLimparB" title="Limpar planilha B para carregar outra">🗑️ Limpar</button>
+      </span>
+    </h2>
+    <input type="file" id="fileB" accept=".xlsx,.xlsm,.xlsb,.xls">
+
+    <div class="sheet-badge" id="sheetBadgeB">
+      <div class="sb-left">
+        📑 Aba atual: <b id="sheetBadgeBName">—</b>
+        <span class="badge-count" id="sheetBadgeBCount">0 abas</span>
+      </div>
+      <div class="sb-right">
+        <button type="button" id="btnTrocarAbaB">🔄 Trocar aba</button>
+        <button type="button" id="btnTrocarColunasB" style="background:#6366f1;">🎛️ Trocar colunas</button>
+      </div>
+    </div>
+
+    <div class="preview-wrap" id="prevB" style="display:none;"><table id="tableB"></table></div>
+    <div class="preview-stats" id="statsB"></div>
+    <div class="preview-actions" id="actionsB" style="display:none;">
+      <button class="secondary" data-act="marcar-todas" data-side="B">☑ Marcar todas</button>
+      <button class="secondary" data-act="desmarcar" data-side="B">☐ Desmarcar</button>
+      <button style="background:#f59e0b" data-act="limpar-espaco" data-side="B">🧹 Espaços</button>
+      <button style="background:#f59e0b" data-act="limpar-especial" data-side="B">🧹 Especiais</button>
+      <button style="background:#dc2626" data-act="limpar-tudo" data-side="B">🧹 Tudo</button>
+      <button style="background:#0891b2" data-act="desfazer" data-side="B">↩️ Desfazer</button>
+    </div>
+  </div>
+</div>
+
+<div class="config-box">
+  <h2>🔗 Configuração da comparação</h2>
+  <div class="config-grid">
+    <div class="config-side a">
+      <h3>Planilha A (fonte)</h3>
+      <div class="config-line">🏙️ Município: <b id="cfgAMun" class="vazio">— não marcado —</b></div>
+      <div class="config-line">🏫 Escola: <b id="cfgAEsc" class="vazio">— não marcada —</b></div>
+      <div class="config-line">📤 Retornar (Código SEC): <b id="cfgAOut" class="vazio">— não marcado —</b></div>
+      <div class="config-line">🔑 Chave: <b id="cfgAKey" class="vazio">— não marcada —</b></div>
+      <div class="config-line">📤 Traz (colunas): <b id="cfgATraz" class="vazio">— nenhuma —</b></div>
+    </div>
+    <div class="config-arrow">➜</div>
+    <div class="config-side b">
+      <h3>Planilha B (destino)</h3>
+      <div class="config-line">🏙️ Município: <b id="cfgBMun" class="vazio">— não marcado —</b></div>
+      <div class="config-line">🏫 Escola: <b id="cfgBEsc" class="vazio">— não marcada —</b></div>
+      <div class="config-line">📥 Recebe em coluna nova: <b>Código SEC (match)</b></div>
+      <div class="config-line">🔑 Chave: <b id="cfgBKey" class="vazio">— não marcada —</b></div>
+      <div class="config-line">📥 Recebe (colunas): <b id="cfgBRecebe" class="vazio">— nenhuma —</b></div>
+    </div>
+  </div>
+</div>
+
+<details open>
+  <summary>⚙️ Parâmetros de matching</summary>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:10px;">
+    <div>
+      <label>Threshold aceitar</label>
+      <input type="number" id="threshold" value="0.75" min="0.4" max="1" step="0.01">
+    </div>
+    <div>
+      <label>Threshold sugerir</label>
+      <input type="number" id="thresholdSug" value="0.60" min="0.3" max="0.99" step="0.01">
+    </div>
+    <div>
+      <label>Modo município</label>
+      <select id="modoMun">
+        <option value="exato">Exato (só municípios idênticos)</option>
+        <option value="flexivel" selected>Flexível (tolera variações pequenas)</option>
+        <option value="ignorar">Ignorar município</option>
+      </select>
+    </div>
+  </div>
+</details>
+
+<details>
+  <summary>📚 Dicionário de abreviações</summary>
+  <textarea id="dictText">DR=DOUTOR
+DRA=DOUTORA
+EST=ESTADUAL
+EE=ESCOLA ESTADUAL
+EM=ESCOLA MUNICIPAL
+ESC=ESCOLA
+PROF=PROFESSOR
+PROFA=PROFESSORA
+STA=SANTA
+STO=SANTO
+PE=PADRE
+PAD=PADRE
+CEL=CORONEL
+MUN=MUNICIPAL
+TEN=TENENTE
+CAP=CAPITAO
+SGT=SARGENTO
+GOV=GOVERNADOR
+PRES=PRESIDENTE
+MIN=MINISTRO
+ENG=ENGENHEIRO
+DEP=DEPUTADO
+SEN=SENADOR
+IRM=IRMAO
+IRMA=IRMA
+FR=FREI
+FREI=FREI
+MAD=MADRE
+JUS=JUSTINO
+NS=NOSSA SENHORA
+CE=COLEGIO ESTADUAL
+CM=COLEGIO MUNICIPAL</textarea>
+</details>
+
+<details>
+  <summary>🚫 Stopwords (removidas sempre)</summary>
+  <textarea id="stopText">DE
+DA
+DO
+DAS
+DOS
+E
+O
+A
+OS
+AS
+PARA
+EM</textarea>
+</details>
+
+<details>
+  <summary>🎯 Tokens genéricos (fallback)</summary>
+  <textarea id="genericText">ESCOLA
+COLEGIO
+CENTRO
+EDUCACIONAL
+UNIDADE
+INTEGRADA
+MUNICIPAL
+ESTADUAL
+FUNDAMENTAL
+MEDIO
+ENSINO
+CRECHE
+EMEI
+EMEF
+EEEF</textarea>
+</details>
+
+<div class="niveis-box">
+  <h2>📖 Entenda os níveis e marcações</h2>
+  <div class="niveis-grid">
+    <div class="nivel-card key">
+      <h3>🔑 CHAVE</h3>
+      <div>Coluna usada para casar as linhas de A com B (geralmente Código SEC). Deve ser marcada nos dois lados.</div>
+    </div>
+    <div class="nivel-card exato">
+      <h3>📤 TRAZ → 📥 RECEBE</h3>
+      <div>Pareamento explícito: o valor de uma coluna de A é copiado para uma coluna de B, casando pela chave.</div>
+    </div>
+    <div class="nivel-card no">
+      <h3>❌ NÃO LOCALIZADO</h3>
+      <div>Quando o código de B não existe em A, o destino recebe <b>"NÃO LOCALIZADO"</b>.</div>
+    </div>
+    <div class="nivel-card fuzzy">
+      <h3>🟡 FUZZY</h3>
+      <div>Modo alternativo de comparação por nome/município (não usa chave).</div>
+    </div>
+  </div>
+</div>
+
+<div class="ai-box">
+  <h2>🤖 Painel de Inteligência Artificial & Prompt</h2>
+  <div class="ai-grid">
+    <div>
+      <label for="aiModel">Modelo de IA:</label>
+      <select id="aiModel">
+        <option value="gemini">Google Gemini</option>
+        <option value="openai">OpenAI (ChatGPT)</option>
+      </select>
+    </div>
+  </div>
+  <div>
+    <label for="aiPrompt">Prompt de Comando / Pergunta para a IA:</label>
+    <textarea id="aiPrompt" placeholder="Exemplo: Analise os dados não pareados..."></textarea>
+  </div>
+  <button id="btnRodarIA" style="margin-top: 10px; background: #8b5cf6;">🚀 Executar Prompt na IA</button>
+  <div id="aiOutput" class="ai-output" style="display: none;">Aguardando execução do comando...</div>
+</div>
+
+<div class="results">
+  <h2>📊 Resultado</h2>
+
+  <div class="resumo-cards">
+    <div class="resumo-card ok" id="cardEncontrados">
+      <div class="rc-info">
+        <span class="rc-label">✅ Localizados</span>
+        <span class="rc-desc">Chaves casadas e colunas preenchidas</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span class="rc-num" id="numEncontrados">0</span>
+        <span class="rc-pct" id="pctEncontrados">0%</span>
+      </div>
+    </div>
+
+    <div class="resumo-card fail" id="cardNaoEncontrados">
+      <div class="rc-info">
+        <span class="rc-label">❌ Não localizados</span>
+        <span class="rc-desc">Chave de B não encontrada em A</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span class="rc-num" id="numNaoEncontrados">0</span>
+        <span class="rc-pct" id="pctNaoEncontrados">0%</span>
+      </div>
+    </div>
+
+    <div class="resumo-card munfail" id="cardMunDiferente">
+      <div class="rc-info">
+        <span class="rc-label">⚠️ Outros</span>
+        <span class="rc-desc">Código vazio ou duplicado</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <span class="rc-num" id="numMunDiferente">0</span>
+        <span class="rc-pct" id="pctMunDiferente">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="stats" class="stats"></div>
+
+  <div class="status-bar">
+    <label for="statusFilter">🔎 Filtrar por situação:</label>
+    <select id="statusFilter">
+      <option value="">— Todas as situações —</option>
+      <option value="OK">✅ LOCALIZADO</option>
+      <option value="NAO">❌ NÃO LOCALIZADO</option>
+      <option value="VAZIO">⚠️ CÓDIGO VAZIO</option>
+      <option value="DUP">🔁 DUPLICADO EM A</option>
+    </select>
+    <span class="sb-count" id="sbCount">Mostrando <b>0</b> de <b>0</b> linhas</span>
+  </div>
+
+  <div id="columnFilters" style="display:flex;gap:10px;flex-wrap:wrap;margin:10px 0;"></div>
+  <div class="table-wrap" id="tableWrap" style="display:none;"><table id="resultTable"></table></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <div class="mh-left">
+        <span class="mh-icon">📋</span>
+        <h3 id="modalTitulo">Selecionar colunas — Planilha A</h3>
+        <span class="badge-nte" id="modalBadgeNte" style="display:none;">NTE localizado</span>
+      </div>
+      <button type="button" class="btn-fechar" id="modalFechar" title="Fechar">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="modal-sheet-picker" id="modalSheetPicker" style="display:none;">
+        <label for="modalSheetSelect">
+          📑 Escolha a aba que deseja trabalhar
+          <span class="badge-count" id="modalSheetCount">0</span>
+        </label>
+        <select id="modalSheetSelect"></select>
+        <div class="sheet-info" id="modalSheetInfo"></div>
+      </div>
+
+      <div class="modal-info" id="modalInfo"></div>
+
+      <div class="modal-lista-titulo">
+        <span>Marque as colunas que deseja levar para o painel</span>
+        <span class="ml-count" id="modalListaCount"><b>0</b> colunas marcadas de <b>0</b></span>
+      </div>
+
+      <div class="col-lista">
+        <div class="col-lista-head">
+          <div></div>
+          <div>Nome da coluna</div>
+          <div>Amostra (primeiros valores)</div>
+        </div>
+        <div class="col-lista-body" id="modalColunas"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <div class="mf-left">
+        <button type="button" class="btn-ghost" id="modalMarcarTodas">☑ Marcar todas</button>
+        <button type="button" class="btn-ghost" id="modalDesmarcarTodas">☐ Desmarcar todas</button>
+        <button type="button" class="btn-sugestao" id="modalSugestao">💡 Sugestão automática</button>
+      </div>
+      <div class="mf-right">
+        <button type="button" class="btn-cancelar" id="modalCancelar">Cancelar</button>
+        <button type="button" class="btn-confirmar" id="modalConfirmar">✓ Confirmar (0 colunas)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Matcher de Planilhas — script principal
+   ============================================================ */
+const API_KEYS = {
+  gemini: "",
+  openai: ""
+};
+
+const TEXTO_NAO_LOCALIZADO = 'NÃO LOCALIZADO';
+
+let toastTimer;
+function toast(msg, tipo) {
+  const t = document.getElementById('toast');
+  if (!t) { console.log('[toast]', msg); return; }
+  t.textContent = msg;
+  t.className = 'toast show' + (tipo === 'erro' ? ' erro' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+function cssEsc(s) { return String(s).replace(/"/g, '\\"'); }
+function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+const state = {
+  A: { rows: [], rowsOriginal: null, headers: [], marcadas: {}, filtros: {}, excluidas: new Set(), todosHeaders: [] },
+  B: { rows: [], rowsOriginal: null, headers: [], marcadas: {}, filtros: {}, excluidas: new Set(), todosHeaders: [] },
+  colunas: { AMun:'', AEsc:'', AOut:'', AKey:'', ATraz:[], BMun:'', BEsc:'', BKey:'', BRecebe:[] },
+  pareamento: [],
+  resultRows: [], resultHeaders: [], resultMeta: [],
+  modoResultado: null,
+  statusFilter: '',
+  arquivoBOriginal: null,
+  linhaOriginalB: []
+};
+
+const workbooks = {
+  A: { wb: null, fileName: '', sheetNames: [], sheetAtual: '', matrizCompleta: null, headerRowIdx: 0, nteEncontrado: false, nteColuna: '' },
+  B: { wb: null, fileName: '', sheetNames: [], sheetAtual: '', matrizCompleta: null, headerRowIdx: 0, nteEncontrado: false, nteColuna: '' }
+};
+
+let resultColumnFilters = {};
+
+function getMarc(st, col) {
+  if (!st.marcadas[col]) st.marcadas[col] = new Set();
+  return st.marcadas[col];
+}
+function toggleMarc(st, col, role, exclusive) {
+  const set = getMarc(st, col);
+  if (set.has(role)) set.delete(role);
+  else {
+    if (exclusive) {
+      Object.keys(st.marcadas).forEach(c => { if (c !== col) st.marcadas[c].delete(role); });
+    }
+    set.add(role);
+  }
+  if (set.size === 0) delete st.marcadas[col];
+}
+function colunasComRole(st, role) { return Object.keys(st.marcadas).filter(c => st.marcadas[c].has(role)); }
+function colunaUnicaComRole(st, role) { const cs = colunasComRole(st, role); return cs.length ? cs[0] : ''; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+let modalState = {
+  side: null, fileName: '', headers: [], rows: [],
+  headerRowIdx: 0, nteEncontrado: false, nteColuna: '',
+  selecionadas: new Set(), deteccoes: {}, sheetName: '',
+  primeiraCarga: false
+};
+
+function abrirModalSelecao(side, opts) {
+  const info = workbooks[side];
+  if (!info.wb) return;
+
+  modalState.side = side;
+  modalState.fileName = info.fileName;
+  modalState.primeiraCarga = !!(opts && opts.primeiraCarga);
+
+  preencherSeletorAbasNoModal(side);
+
+  const abaAtual = info.sheetAtual || info.sheetNames[0];
+  document.getElementById('modalSheetSelect').value = abaAtual;
+
+  carregarAbaNoModal(side, abaAtual);
+
+  document.getElementById('modalTitulo').textContent = `Selecionar colunas — Planilha ${side}`;
+  document.getElementById('modalOverlay').classList.add('visible');
+}
+
+function preencherSeletorAbasNoModal(side) {
+  const info = workbooks[side];
+  const picker = document.getElementById('modalSheetPicker');
+  const sel = document.getElementById('modalSheetSelect');
+  const count = document.getElementById('modalSheetCount');
+  const infoEl = document.getElementById('modalSheetInfo');
+
+  sel.innerHTML = '';
+  info.sheetNames.forEach(nome => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    opt.textContent = nome;
+    sel.appendChild(opt);
+  });
+
+  count.textContent = `${info.sheetNames.length} ${info.sheetNames.length === 1 ? 'aba' : 'abas'}`;
+  infoEl.textContent = info.sheetNames.length === 1
+    ? `Esta pasta tem apenas 1 aba.`
+    : `Esta pasta tem ${info.sheetNames.length} abas. Escolha acima a aba que deseja trabalhar — as colunas serão atualizadas automaticamente.`;
+
+  picker.style.display = 'block';
+}
+
+function carregarAbaNoModal(side, nomeAba) {
+  const info = workbooks[side];
+  if (!info.wb) return;
+  const ws = info.wb.Sheets[nomeAba];
+  if (!ws) { toast(`Aba "${nomeAba}" não encontrada.`, 'erro'); return; }
+
+  info.sheetAtual = nomeAba;
+  modalState.sheetName = nomeAba;
+
+  const matriz = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+  let headerRowIdx = 0, nteEncontrado = false, nteColuna = '';
+  for (let i = 0; i < Math.min(matriz.length, 30); i++) {
+    const linha = matriz[i] || [];
+    for (let j = 0; j < linha.length; j++) {
+      const cel = String(linha[j] || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (/\bNTE\b/.test(cel) || cel === 'NTE') {
+        headerRowIdx = i; nteEncontrado = true; nteColuna = String(linha[j] || '');
+        break;
+      }
+    }
+    if (nteEncontrado) break;
+  }
+
+  const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false, range: headerRowIdx });
+  const headers = getHeaders(json);
+
+  info.matrizCompleta = json;
+  info.headerRowIdx = headerRowIdx;
+  info.nteEncontrado = nteEncontrado;
+  info.nteColuna = nteColuna;
+
+  modalState.rows = json;
+  modalState.headerRowIdx = headerRowIdx;
+  modalState.nteEncontrado = nteEncontrado;
+  modalState.nteColuna = nteColuna;
+  modalState.headers = headers;
+  modalState.deteccoes = {};
+  headers.forEach(h => { modalState.deteccoes[h] = detectarTipoColuna(h); });
+
+  const jaMarcadas = state[side].headers || [];
+  modalState.selecionadas = new Set();
+  headers.forEach(h => {
+    if (jaMarcadas.includes(h)) {
+      modalState.selecionadas.add(h);
+    } else {
+      const tipo = modalState.deteccoes[h];
+      if (tipo === 'NTE' || tipo === 'MUNICIPIO' || tipo === 'CODIGO' || tipo === 'ESCOLA') {
+        modalState.selecionadas.add(h);
+      }
+    }
+  });
+
+  const badgeNte = document.getElementById('modalBadgeNte');
+  if (nteEncontrado) {
+    badgeNte.style.display = 'inline-block';
+    badgeNte.textContent = `NTE localizado (linha ${headerRowIdx + 1})`;
+  } else badgeNte.style.display = 'none';
+
+  const infoEl = document.getElementById('modalInfo');
+  const nteInfo = nteEncontrado
+    ? `Cabeçalho detectado na linha <b>${headerRowIdx + 1}</b> (marcado pelo NTE). Linhas de dados: <b>${json.length}</b>.`
+    : `<span class="muted">⚠️ Coluna NTE não localizada. Usando a <b>primeira linha</b> como cabeçalho.</span> Linhas de dados: <b>${json.length}</b>.`;
+  infoEl.innerHTML = `Arquivo: <b>${esc(info.fileName)}</b> · Aba: <b>${esc(nomeAba)}</b><br>${nteInfo}<br>Total de colunas disponíveis: <b>${headers.length}</b>.`;
+
+  renderModalColunas();
+}
+
+function detectarTipoColuna(nome) {
+  const n = String(nome || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  if (/\bNTE\b/.test(n) || n === 'NTE') return 'NTE';
+  if (n.includes('MUNICIPIO') || n === 'MUN') return 'MUNICIPIO';
+  if (n.includes('COD') && (n.includes('SEC') || n.includes('INEP') || n === 'COD' || n === 'CODIGO')) return 'CODIGO';
+  if (n.includes('ESCOLA') || n.includes('UNIDADE ESCOLAR') || n.includes('NOME DA UNIDADE')) return 'ESCOLA';
+  return null;
+}
+
+function renderModalColunas() {
+  const box = document.getElementById('modalColunas');
+  box.innerHTML = '';
+  modalState.headers.forEach(h => {
+    const tipo = modalState.deteccoes[h];
+    const marcada = modalState.selecionadas.has(h);
+    const amostra = [];
+    for (let i = 0; i < modalState.rows.length && amostra.length < 3; i++) {
+      const v = modalState.rows[i]?.[h];
+      if (v !== undefined && v !== null && String(v).trim() !== '') amostra.push(String(v));
+    }
+    const amostraTxt = amostra.length ? amostra.join(' · ') : '— sem dados —';
+    let badgeHtml = '';
+    if (tipo === 'NTE')       badgeHtml = '<span class="ci-badge nte">NTE</span>';
+    if (tipo === 'MUNICIPIO') badgeHtml = '<span class="ci-badge municipio">MUNICÍPIO</span>';
+    if (tipo === 'CODIGO')    badgeHtml = '<span class="ci-badge codigo">CÓDIGO</span>';
+    if (tipo === 'ESCOLA')    badgeHtml = '<span class="ci-badge escola">ESCOLA</span>';
+    const item = document.createElement('label');
+    item.className = 'col-item' + (marcada ? ' marcada' : '');
+    item.dataset.col = h;
+    item.innerHTML = `
+      <input type="checkbox" ${marcada ? 'checked' : ''} data-col="${esc(h)}">
+      <div class="ci-nome">${esc(h)} ${badgeHtml}</div>
+      <div class="ci-amostra" title="${esc(amostraTxt)}">${esc(amostraTxt)}</div>
+    `;
+    box.appendChild(item);
+  });
+  box.querySelectorAll('input[type=checkbox]').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const col = chk.dataset.col;
+      if (chk.checked) modalState.selecionadas.add(col);
+      else modalState.selecionadas.delete(col);
+      const lbl = chk.closest('.col-item');
+      if (lbl) lbl.classList.toggle('marcada', chk.checked);
+      atualizarBotaoConfirmar();
+    });
+  });
+  atualizarBotaoConfirmar();
+}
+
+function atualizarBotaoConfirmar() {
+  const n = modalState.selecionadas.size;
+  const total = modalState.headers.length;
+  const btn = document.getElementById('modalConfirmar');
+  btn.textContent = `✓ Confirmar (${n} ${n === 1 ? 'coluna' : 'colunas'})`;
+  btn.disabled = n === 0;
+
+  const elCount = document.getElementById('modalListaCount');
+  if (elCount) elCount.innerHTML = `<b>${n}</b> colunas marcadas de <b>${total}</b>`;
+}
+
+function fecharModal() {
+  document.getElementById('modalOverlay').classList.remove('visible');
+  modalState.side = null;
+}
+
+function aplicarSelecaoModal() {
+  const side = modalState.side;
+  if (!side) return;
+  const colunasEscolhidas = modalState.headers.filter(h => modalState.selecionadas.has(h));
+  if (!colunasEscolhidas.length) { toast('Selecione pelo menos uma coluna.', 'erro'); return; }
+
+  state[side].todosHeaders = modalState.headers.slice();
+  state[side].rows = modalState.rows;
+  state[side].headers = colunasEscolhidas;
+  const visiveisSet = new Set(colunasEscolhidas);
+  Object.keys(state[side].marcadas).forEach(c => { if (!visiveisSet.has(c)) delete state[side].marcadas[c]; });
+  Object.keys(state[side].filtros).forEach(c => { if (!visiveisSet.has(c)) delete state[side].filtros[c]; });
+  state[side].excluidas = new Set();
+  state[side].rowsOriginal = null;
+
+  colunasEscolhidas.forEach(h => {
+    if (state[side].marcadas[h] && state[side].marcadas[h].size > 0) return;
+    const tipo = modalState.deteccoes[h];
+    if (tipo === 'MUNICIPIO') getMarc(state[side], h).add('MUN');
+    if (tipo === 'ESCOLA')    getMarc(state[side], h).add('ESC');
+    if (tipo === 'CODIGO') {
+      getMarc(state[side], h).add('KEY');
+      if (side === 'A') getMarc(state[side], h).add('OUT');
+    }
+  });
+
+  atualizarNomeArquivo(side);
+  atualizarBadgeAba(side);
+  document.getElementById('btnLimpar' + side).classList.add('visible');
+  renderPreview(side);
+  atualizarConfigBox();
+  toast(`✅ ${colunasEscolhidas.length} colunas visíveis na Planilha ${side} (aba ${modalState.sheetName}).`);
+  fecharModal();
+}
+
+function atualizarNomeArquivo(side) {
+  const info = workbooks[side];
+  const el = document.getElementById('file' + side + 'Name');
+  if (!el) return;
+  if (!info.fileName) { el.textContent = ''; return; }
+  const aba = info.sheetAtual ? ` › ${info.sheetAtual}` : '';
+  el.textContent = info.fileName + aba;
+}
+
+function atualizarBadgeAba(side) {
+  const info = workbooks[side];
+  const badge = document.getElementById('sheetBadge' + side);
+  const nome = document.getElementById('sheetBadge' + side + 'Name');
+  const count = document.getElementById('sheetBadge' + side + 'Count');
+  if (!info.fileName || !info.sheetAtual) { badge.classList.remove('visible'); return; }
+  nome.textContent = info.sheetAtual;
+  count.textContent = `${info.sheetNames.length} ${info.sheetNames.length === 1 ? 'aba' : 'abas'}`;
+  badge.classList.add('visible');
+}
+
+/* ============================================================
+   LEITURA DE ARQUIVO
+   ============================================================ */
+function extensaoValida(nome) { return /\.(xlsx|xlsm|xlsb|xls)$/i.test(nome || ''); }
+
+function readFile(file, side) {
+  if (!extensaoValida(file.name)) { toast('Formato inválido. Use .xlsx, .xlsm ou .xlsb', 'erro'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: false, cellNF: false, cellText: true, bookVBA: false });
+      if (!wb || !wb.SheetNames || !wb.SheetNames.length) throw new Error('Nenhuma aba encontrada.');
+
+      workbooks[side].wb = wb;
+      workbooks[side].fileName = file.name;
+      workbooks[side].sheetNames = wb.SheetNames.slice();
+      workbooks[side].sheetAtual = wb.SheetNames[0];
+
+      if (side === 'B') {
+        state.arquivoBOriginal = data.slice();
+      }
+
+      abrirModalSelecao(side, { primeiraCarga: true });
+    } catch (err) {
+      console.error('Erro ao ler arquivo:', err);
+      toast('Erro ao ler o arquivo: ' + err.message, 'erro');
+    }
+  };
+  reader.onerror = () => toast('Erro ao carregar arquivo.', 'erro');
+  reader.readAsArrayBuffer(file);
+}
+
+function getHeaders(json) {
+  const s = new Set(); json.forEach(r => Object.keys(r).forEach(k => s.add(k))); return Array.from(s);
+}
+
+/* ============================================================
+   PREVIEW
+   ============================================================ */
+function renderPreview(side) {
+  const st = state[side];
+  const prevDiv = document.getElementById('prev' + side);
+  const table = document.getElementById('table' + side);
+  const statsDiv = document.getElementById('stats' + side);
+  const actionsDiv = document.getElementById('actions' + side);
+  if (!st.rows.length) {
+    prevDiv.style.display = 'none'; actionsDiv.style.display = 'none'; statsDiv.innerHTML = ''; return;
+  }
+  prevDiv.style.display = 'block'; actionsDiv.style.display = 'flex';
+  const linhasVisiveis = st.rows.map((r, idx) => ({ r, idx })).filter(({ r }) => {
+    for (const [col, val] of Object.entries(st.filtros)) {
+      if (!val) continue;
+      if (!String(r[col] ?? '').toLowerCase().includes(val.toLowerCase())) return false;
+    }
+    return true;
+  });
+
+  const botoes = side === 'A'
+    ? [['MUN','MUN',''],['ESC','ESC',''],['OUT','SEC',''],['KEY','🔑','key'],['TRAZ','📤','traz']]
+    : [['MUN','MUN',''],['ESC','ESC',''],['KEY','🔑','key'],['RECEBE','📥','recebe']];
+
+  let thead = '<thead><tr><th class="chk-cell">☑</th>';
+  st.headers.forEach(h => {
+    const set = st.marcadas[h] || new Set();
+    let cls = '';
+    if (set.has('MUN')) cls = 'col-mun';
+    else if (set.has('ESC')) cls = 'col-nome';
+    else if (set.has('OUT')) cls = 'col-out';
+    else if (set.has('KEY')) cls = 'col-key';
+    else if (set.has('TRAZ')) cls = 'col-traz';
+    else if (set.has('RECEBE')) cls = 'col-recebe';
+
+    let btns = '';
+    botoes.forEach(([role, label, extra]) => {
+      const checked = set.has(role) ? 'checked' : '';
+      btns += `<label class="marcacao-item ${extra} ${checked}" data-col="${esc(h)}" data-role="${role}" title="Marcar como ${label}">
+        <input type="checkbox" ${checked}> ${label}
+      </label>`;
+    });
+
+    thead += `<th class="${cls}">
+      <div class="col-header">
+        <div class="col-name" title="${esc(h)}">${esc(h)}</div>
+        <div class="marcacao-group">${btns}</div>
+        <input class="col-filter" placeholder="🔍 filtrar..." value="${esc(st.filtros[h] || '')}" data-col="${esc(h)}">
+      </div>
+    </th>`;
+  });
+  thead += '</tr></thead>';
+
+  const limite = Math.min(linhasVisiveis.length, 5000);
+  let tbody = '<tbody>';
+  for (let i = 0; i < limite; i++) {
+    const { r, idx } = linhasVisiveis[i];
+    const removida = st.excluidas.has(idx);
+    tbody += `<tr class="${removida?'removida':''}">
+      <td class="chk-cell"><input type="checkbox" data-side="${side}" data-idx="${idx}" ${removida?'':'checked'}></td>`;
+    st.headers.forEach(h => tbody += `<td title="${esc(r[h] ?? '')}">${esc(r[h] ?? '')}</td>`);
+    tbody += '</tr>';
+  }
+  tbody += '</tbody>';
+  table.innerHTML = thead + tbody;
+  statsDiv.innerHTML = `Linhas: <b>${st.rows.length}</b> · Visíveis: <b>${linhasVisiveis.length}</b> · Ativas: <b>${st.rows.length - st.excluidas.size}</b> · Colunas visíveis: <b>${st.headers.length}</b>${st.todosHeaders.length !== st.headers.length ? ` de ${st.todosHeaders.length}` : ''}`;
+
+  table.querySelectorAll('input[type=checkbox][data-idx]').forEach(chk => {
+    chk.addEventListener('change', e => {
+      const idx = parseInt(e.target.dataset.idx);
+      if (e.target.checked) st.excluidas.delete(idx); else st.excluidas.add(idx);
+      renderPreview(side);
+    });
+  });
+  table.querySelectorAll('.marcacao-item').forEach(lbl => {
+    lbl.addEventListener('click', e => {
+      e.preventDefault();
+      const col = lbl.dataset.col, role = lbl.dataset.role;
+      const exclusivos = ['MUN', 'ESC', 'OUT', 'KEY'];
+      const isExclusivo = exclusivos.includes(role);
+      toggleMarc(st, col, role, isExclusivo);
+      renderPreview(side); atualizarConfigBox();
+    });
+  });
+  table.querySelectorAll('.col-filter').forEach(inp => {
+    let timer;
+    inp.addEventListener('input', e => {
+      clearTimeout(timer);
+      const col = inp.dataset.col, val = e.target.value;
+      timer = setTimeout(() => {
+        st.filtros[col] = val; renderPreview(side);
+        const n = document.querySelector(`#table${side} .col-filter[data-col="${cssEsc(col)}"]`);
+        if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); }
+      }, 300);
+    });
+  });
+}
+
+/* ============================================================
+   CONFIG BOX
+   ============================================================ */
+function atualizarConfigBox() {
+  const A = state.A, B = state.B;
+  const aMun = colunaUnicaComRole(A, 'MUN');
+  const aEsc = colunaUnicaComRole(A, 'ESC');
+  const aOut = colunaUnicaComRole(A, 'OUT');
+  const aKey = colunaUnicaComRole(A, 'KEY');
+  const bMun = colunaUnicaComRole(B, 'MUN');
+  const bEsc = colunaUnicaComRole(B, 'ESC');
+  const bKey = colunaUnicaComRole(B, 'KEY');
+  const aTraz = colunasComRole(A, 'TRAZ');
+  const bRecebe = colunasComRole(B, 'RECEBE');
+
+  state.colunas = { AMun:aMun, AEsc:aEsc, AOut:aOut, AKey:aKey, ATraz:aTraz, BMun:bMun, BEsc:bEsc, BKey:bKey, BRecebe:bRecebe };
+
+  setCfg('cfgAMun', aMun); setCfg('cfgAEsc', aEsc); setCfg('cfgAOut', aOut); setCfg('cfgAKey', aKey);
+  setCfg('cfgBMun', bMun); setCfg('cfgBEsc', bEsc); setCfg('cfgBKey', bKey);
+  setCfg('cfgATraz', aTraz.length ? aTraz.join(', ') : '');
+  setCfg('cfgBRecebe', bRecebe.length ? bRecebe.join(', ') : '');
+
+  const temChave = aKey && bKey;
+  const fillBox = document.getElementById('fillBox');
+  fillBox.classList.toggle('visible', !!temChave);
+  if (temChave) {
+    document.getElementById('fillKeyA').textContent = aKey;
+    document.getElementById('fillKeyB').textContent = bKey;
+    renderFillMap();
+  }
+
+  const btnComparar = document.getElementById('btnComparar');
+  const btnPreencher = document.getElementById('btnPreencher');
+  const temMun = aMun && bMun;
+  const temEsc = aEsc && bEsc;
+  const podeFuzzy = !!(aOut && (temMun || temEsc) && !temChave);
+  btnComparar.disabled = !podeFuzzy;
+
+  const podeChave = !!temChave && state.pareamento.filter(p => p.colA && p.colB).length > 0;
+  if (btnPreencher) btnPreencher.disabled = !podeChave;
+
+  const btnExpB = document.getElementById('btnExportarSobreB');
+  if (btnExpB) btnExpB.disabled = !podeChave;
+
+  const hint = document.getElementById('taHint');
+  if (podeChave) {
+    hint.innerHTML = `<b>🔑 Modo Chave ativo.</b> Clique em <b>⚡ Preencher B a partir de A</b> (no painel laranja abaixo).`;
+  } else if (podeFuzzy) {
+    hint.innerHTML = `<b>✅ Pronto para comparar (modo fuzzy).</b> Clique em <b>⚡ Comparar</b>.`;
+  } else if (temChave) {
+    hint.innerHTML = `<b>🔑 Chave detectada.</b> Marque <b>📤 TRAZ</b> em A e <b>📥 RECEBE</b> em B para parear.`;
+  } else {
+    hint.innerHTML = `Os botões abaixo ativam quando as marcações mínimas estiverem prontas.`;
+  }
+}
+
+function renderFillMap() {
+  const tbody = document.getElementById('fillMapBody');
+  tbody.querySelectorAll('tr:not(.chave-row)').forEach(tr => tr.remove());
+  const aTraz = state.colunas.ATraz;
+  const bRecebe = state.colunas.BRecebe;
+  const usadosB = new Set();
+  state.pareamento = state.pareamento.filter(p => {
+    if (!aTraz.includes(p.colA) || !bRecebe.includes(p.colB)) return false;
+    if (usadosB.has(p.colB)) return false;
+    usadosB.add(p.colB);
+    return true;
+  });
+  const aSemPar = aTraz.filter(cA => !state.pareamento.some(p => p.colA === cA));
+  const bLivres = bRecebe.filter(cB => !usadosB.has(cB));
+  aSemPar.forEach((cA, i) => {
+    if (bLivres[i]) state.pareamento.push({ colA: cA, colB: bLivres[i] });
+  });
+
+  if (!aTraz.length && !bRecebe.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="4" style="text-align:center;color:#9ca3af;font-style:italic;padding:14px;">
+      Marque colunas com 📤 em A e 📥 em B para criar o pareamento.
+    </td>`;
+    tbody.appendChild(tr);
+  } else {
+    state.pareamento.forEach((p, idx) => {
+      const tr = document.createElement('tr');
+      const optsB = bRecebe.map(cB => {
+        const usada = state.pareamento.some((q, j) => j !== idx && q.colB === cB);
+        return `<option value="${esc(cB)}" ${p.colB === cB ? 'selected' : ''} ${usada ? 'disabled' : ''}>${esc(cB)}${usada ? ' (já usado)' : ''}</option>`;
+      }).join('');
+      tr.innerHTML = `
+        <td class="col-a">📤 ${esc(p.colA)}</td>
+        <td class="arrow">➜</td>
+        <td class="col-b">
+          <select data-idx="${idx}">
+            <option value="">— escolha —</option>
+            ${optsB}
+          </select>
+        </td>
+        <td class="arrow" style="cursor:pointer;" title="Remover pareamento">✕</td>
+      `;
+      tr.querySelector('select').addEventListener('change', e => {
+        state.pareamento[idx].colB = e.target.value;
+        atualizarConfigBox();
+      });
+      tr.querySelector('td:last-child').addEventListener('click', () => {
+        state.pareamento.splice(idx, 1);
+        atualizarConfigBox();
+      });
+      tbody.appendChild(tr);
+    });
+  }
+
+  const status = document.getElementById('fillStatus');
+  const n = state.pareamento.filter(p => p.colA && p.colB).length;
+  if (n === 0) {
+    status.innerHTML = `<span class="warn">⚠️ Nenhum pareamento pronto.</span> Marque 📤 em A e 📥 em B.`;
+  } else {
+    status.innerHTML = `<span class="ok">✅ ${n} pareamento(s) pronto(s).</span> Clique em <b>⚡ Preencher</b>.`;
+  }
+}
+
+function setCfg(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (val) { el.textContent = val; el.classList.remove('vazio'); }
+  else { el.textContent = '— não marcado —'; el.classList.add('vazio'); }
+}
+
+/* ============================================================
+   LIMPEZA
+   ============================================================ */
+function limparEspacos(s) { return s == null ? '' : String(s).replace(/[\u00A0\u2000-\u200B\u202F\u205F\u3000]/g, ' ').replace(/[\t\r\n\v\f]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+function limparEspeciais(s) { return s == null ? '' : String(s).replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim(); }
+function limparTudo(s) { return limparEspeciais(limparEspacos(s)); }
+
+function aplicarLimpeza(side, modo) {
+  const st = state[side];
+  if (!st.rows.length) return toast('Suba uma planilha primeiro.', 'erro');
+  if (!st.rowsOriginal) st.rowsOriginal = JSON.parse(JSON.stringify(st.rows));
+  const fn = modo === 'espaco' ? limparEspacos : modo === 'especial' ? limparEspeciais : limparTudo;
+  let alteracoes = 0;
+  st.rows.forEach(r => {
+    st.headers.forEach(col => {
+      const antes = r[col], depois = fn(antes);
+      if (antes !== depois) alteracoes++;
+      r[col] = depois;
+    });
+  });
+  renderPreview(side);
+  toast(alteracoes > 0 ? `✅ ${alteracoes} células ajustadas.` : `ℹ️ Nenhuma alteração.`);
+}
+function desfazerLimpeza(side) {
+  const st = state[side];
+  if (!st.rowsOriginal) return toast('Nada para desfazer.', 'erro');
+  st.rows = JSON.parse(JSON.stringify(st.rowsOriginal));
+  st.rowsOriginal = null;
+  renderPreview(side); toast('↩️ Limpeza desfeita.');
+}
+function limparArquivo(side) {
+  const info = workbooks[side];
+  const nome = info.fileName || '';
+  if (nome) { if (!confirm(`Deseja realmente limpar a Planilha ${side} (${nome})?`)) return; }
+  state[side] = { rows: [], rowsOriginal: null, headers: [], marcadas: {}, filtros: {}, excluidas: new Set(), todosHeaders: [] };
+  if (side === 'A') state.pareamento = [];
+  if (side === 'B') state.arquivoBOriginal = null;
+  workbooks[side] = { wb: null, fileName: '', sheetNames: [], sheetAtual: '', matrizCompleta: null, headerRowIdx: 0, nteEncontrado: false, nteColuna: '' };
+
+  const input = document.getElementById('file' + side);
+  if (input) input.value = '';
+  document.getElementById('file' + side + 'Name').textContent = '';
+  document.getElementById('sheetBadge' + side).classList.remove('visible');
+  document.getElementById('prev' + side).style.display = 'none';
+  document.getElementById('table' + side).innerHTML = '';
+  document.getElementById('stats' + side).innerHTML = '';
+  document.getElementById('actions' + side).style.display = 'none';
+  document.getElementById('btnLimpar' + side).classList.remove('visible');
+  atualizarConfigBox();
+  if (!state.A.rows.length || !state.B.rows.length) limparResultado();
+  toast(`🗑️ Planilha ${side} limpa.`);
+}
+function limparResultado() {
+  state.resultRows = []; state.resultHeaders = []; state.resultMeta = [];
+  state.modoResultado = null; resultColumnFilters = {};
+  state.linhaOriginalB = [];
+  document.getElementById('tableWrap').style.display = 'none';
+  document.getElementById('resultTable').innerHTML = '';
+  document.getElementById('columnFilters').innerHTML = '';
+  document.getElementById('stats').innerHTML = '';
+  document.getElementById('numEncontrados').textContent = '0';
+  document.getElementById('pctEncontrados').textContent = '0%';
+  document.getElementById('numNaoEncontrados').textContent = '0';
+  document.getElementById('pctNaoEncontrados').textContent = '0%';
+  document.getElementById('numMunDiferente').textContent = '0';
+  document.getElementById('pctMunDiferente').textContent = '0%';
+  document.getElementById('btnExportar').disabled = true;
+  resetarProgresso();
+}
+
+/* ============================================================
+   PARSERS E FUZZY
+   ============================================================ */
+function parseDict() {
+  const m = {};
+  document.getElementById('dictText').value.split('\n').forEach(l => {
+    const idx = l.indexOf('=');
+    if (idx < 0) return;
+    const k = l.slice(0, idx).trim(), v = l.slice(idx + 1).trim();
+    if (k && v) m[k.toUpperCase().replace(/[^A-Z0-9]/g,'')] = v.toUpperCase();
+  });
+  return m;
+}
+function parseStop() { return new Set(document.getElementById('stopText').value.split('\n').map(s => s.trim().toUpperCase()).filter(Boolean)); }
+function parseGeneric() { return new Set(document.getElementById('genericText').value.split('\n').map(s => s.trim().toUpperCase()).filter(Boolean)); }
+function limparStr(s) { return s == null ? '' : String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function expandirTokens(t, dict) {
+  const out = [];
+  t.split(' ').forEach(p => {
+    if (!p) return;
+    const key = p.replace(/[^A-Z0-9]/g,'');
+    if (dict[key]) dict[key].split(' ').forEach(x => out.push(x)); else out.push(p);
+  });
+  return out;
+}
+function normalizar(s, dict, stop, generic) {
+  const base = limparStr(s);
+  if (!base) return { full:'', tokens:[], dist:'', distTokens:[] };
+  let toks = expandirTokens(base, dict).filter(p => p && !stop.has(p));
+  toks = toks.filter((p, i) => p !== toks[i-1]);
+  const distTokens = toks.filter(p => !generic.has(p));
+  return { full: toks.join(' '), tokens: toks, dist: distTokens.join(' '), distTokens: distTokens.length ? distTokens : toks };
+}
+function normMun(s, dict) { return expandirTokens(limparStr(s), dict).filter(p => p && p.length > 1).join(' '); }
+function lev(a, b) {
+  if (!a.length) return b.length; if (!b.length) return a.length;
+  const m=a.length,n=b.length; let p=new Array(n+1),c=new Array(n+1);
+  for(let j=0;j<=n;j++)p[j]=j;
+  for(let i=1;i<=m;i++){c[0]=i;for(let j=1;j<=n;j++){const k=a[i-1]===b[j-1]?0:1;c[j]=Math.min(c[j-1]+1,p[j]+1,p[j-1]+k);}[p,c]=[c,p];}
+  return p[n];
+}
+function simLev(a,b){ if(!a&&!b)return 1; const m=Math.max(a.length,b.length); return m?1-lev(a,b)/m:1; }
+function tri(s){ const S=new Set(); const x=`  ${s}  `; for(let i=0;i<x.length-2;i++)S.add(x.substr(i,3)); return S; }
+function simTri(a,b){ const A=tri(a),B=tri(b); if(!A.size||!B.size)return 0; let i=0; A.forEach(t=>{if(B.has(t))i++;}); return 2*i/(A.size+B.size); }
+function jac(aT,bT){ const A=new Set(aT),B=new Set(bT); if(!A.size&&!B.size)return 1; let i=0; A.forEach(t=>{if(B.has(t))i++;}); return i/(A.size+B.size-i); }
+function ctd(aT,bT){ const A=new Set(aT),B=new Set(bT); if(!A.size||!B.size)return 0; let i=0; A.forEach(t=>{if(B.has(t))i++;}); return i/Math.min(A.size,B.size); }
+function subconjuntoTokens(aT, bT) {
+  const A=new Set(aT),B=new Set(bT); const [menor,maior]=A.size<B.size?[A,B]:[B,A];
+  if(!menor.size) return 0;
+  let i=0; menor.forEach(t=>{ if(maior.has(t)) i++; }); return i/menor.size;
+}
+function score(a, b, usarDist) {
+  const ta = usarDist ? a.distTokens : a.tokens, tb = usarDist ? b.distTokens : b.tokens;
+  const sa = usarDist ? a.dist : a.full, sb = usarDist ? b.dist : b.full;
+  if (!sa && !sb) return 0;
+  const sl = simLev(sa, sb), st = simTri(sa, sb), sj = jac(ta, tb), sc = ctd(ta, tb);
+  let base = 0.18*sl + 0.22*st + 0.22*sj + 0.38*sc;
+  if (sc === 1) {
+    const dif = Math.abs(ta.length - tb.length);
+    if (dif === 0) base += 0.15; else if (dif === 1) base += 0.12; else if (dif <= 3) base += 0.08;
+  }
+  return Math.min(1, base);
+}
+function matchingCascata(a, b) {
+  if (a.full && a.full === b.full) return { score: 1, camada: 'EXATO' };
+  if (a.dist && a.dist === b.dist) return { score: 0.99, camada: 'EXATO' };
+  if (ctd(a.distTokens, b.distTokens) === 1 && a.distTokens.length && b.distTokens.length) return { score: 0.95, camada: 'FUZZY' };
+  if (subconjuntoTokens(a.distTokens, b.distTokens) === 1 && Math.min(a.distTokens.length, b.distTokens.length) >= 2) return { score: 0.88, camada: 'SUBSEQ' };
+  const sDistF = score(a, b, true), sFullF = score(a, b, false), final = Math.max(sDistF, sFullF);
+  return { score: final, camada: final >= 0.75 ? 'FUZZY' : 'NENHUMA' };
+}
+function matchingPorMunicipio(a, b, modoMun) {
+  if (!a.mun || !b.mun) return { score: 0, camada: 'NENHUMA' };
+  if (a.mun === b.mun) return { score: 1, camada: 'EXATO' };
+  if (modoMun === 'flexivel') {
+    const sl = simLev(a.mun, b.mun), st = simTri(a.mun, b.mun);
+    const s = 0.5 * sl + 0.5 * st;
+    if (s >= 0.85) return { score: s, camada: 'FUZZY' };
+  }
+  return { score: 0, camada: 'NENHUMA' };
+}
+function municipioCompativel(munA, munB, modoMun) {
+  if (!munA || !munB) return false;
+  if (munA === munB) return true;
+  if (modoMun !== 'flexivel') return false;
+  const sl = simLev(munA, munB), st = simTri(munA, munB);
+  return (0.5 * sl + 0.5 * st) >= 0.85;
+}
+
+/* ============================================================
+   PROGRESSO — barra azul, sempre visível
+   ============================================================ */
+function resetarProgresso() {
+  const box = document.getElementById('progressBox');
+  if (!box) return;
+  box.classList.remove('done');
+  document.getElementById('progressLabel').textContent = 'Aguardando clique em "Preencher B a partir de A"...';
+  document.getElementById('progressPct').textContent = '0%';
+  const fill = document.getElementById('progressFill');
+  fill.style.width = '0%';
+  fill.style.background = 'linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)';
+  fill.style.animation = 'shimmer 1.6s linear infinite';
+  fill.textContent = '';
+  document.getElementById('progressSubLeft').textContent = 'Pronto para iniciar';
+  document.getElementById('progressSubRight').textContent = '0 / 0 linhas';
+}
+
+function mostrarProgresso() {
+  const box = document.getElementById('progressBox');
+  box.classList.remove('done');
+  document.getElementById('progressLabel').textContent = 'Processando...';
+  document.getElementById('progressPct').textContent = '0%';
+  const fill = document.getElementById('progressFill');
+  fill.style.width = '0%';
+  fill.style.background = 'linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)';
+  fill.style.animation = 'shimmer 1.6s linear infinite';
+  fill.textContent = '';
+  document.getElementById('progressSubLeft').textContent = 'Iniciando...';
+  document.getElementById('progressSubRight').textContent = '0 / 0 linhas';
+}
+
+function atualizarProgresso(pct, atual, total, mensagem) {
+  const p = Math.max(0, Math.min(100, pct));
+  document.getElementById('progressPct').textContent = p.toFixed(0) + '%';
+  const fill = document.getElementById('progressFill');
+  fill.style.width = p + '%';
+  fill.textContent = p >= 8 ? p.toFixed(0) + '%' : '';
+  if (mensagem) document.getElementById('progressSubLeft').textContent = mensagem;
+  document.getElementById('progressSubRight').textContent = `${atual} / ${total} linhas`;
+}
+
+function finalizarProgresso() {
+  const box = document.getElementById('progressBox');
+  box.classList.add('done');
+  document.getElementById('progressLabel').textContent = '✅ Concluído!';
+  document.getElementById('progressPct').textContent = '100%';
+  const fill = document.getElementById('progressFill');
+  fill.style.width = '100%';
+  fill.textContent = '100%';
+  fill.style.background = 'linear-gradient(90deg, #2563eb 0%, #1e40af 100%)';
+  fill.style.animation = 'none';
+  document.getElementById('progressSubLeft').textContent = 'Finalizado com sucesso';
+  // NÃO esconde mais — permanece visível na tela processada
+}
+
+function erroProgresso(msg) {
+  const box = document.getElementById('progressBox');
+  box.classList.remove('done');
+  document.getElementById('progressLabel').textContent = '❌ Erro: ' + msg;
+  document.getElementById('progressPct').textContent = '—';
+  document.getElementById('progressSubLeft').textContent = 'Veja o console (F12).';
+  const fill = document.getElementById('progressFill');
+  fill.style.background = 'linear-gradient(90deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)';
+  fill.style.animation = 'none';
+  // NÃO esconde
+}
+
+/* ============================================================
+   MODO CHAVE
+   ============================================================ */
+async function preencherPorChave() {
+  const btn = document.getElementById('btnPreencher');
+  const btnExportar = document.getElementById('btnExportar');
+  try {
+    const { AKey, BKey } = state.colunas;
+    if (!AKey || !BKey) { toast('Marque a CHAVE nas duas planilhas.', 'erro'); return; }
+    const pares = state.pareamento.filter(p => p.colA && p.colB);
+    if (!pares.length) { toast('Nenhum pareamento pronto. Marque 📤 em A e 📥 em B.', 'erro'); return; }
+
+    const rowsA = state.A.rows.filter((_, i) => !state.A.excluidas.has(i));
+    const rowsB = state.B.rows.filter((_, i) => !state.B.excluidas.has(i));
+    if (!rowsA.length || !rowsB.length) { toast('Planilhas vazias após exclusões.', 'erro'); return; }
+
+    btn.disabled = true; btnExportar.disabled = true;
+    mostrarProgresso();
+
+    const normKey = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+    const idxA = new Map();
+    const duplicatas = [];
+    rowsA.forEach(a => {
+      const k = normKey(a[AKey]);
+      if (!k) return;
+      if (idxA.has(k)) {
+        const item = idxA.get(k);
+        item.dupCount++;
+        item.dups.push(a[AKey]);
+        duplicatas.push({ chave: a[AKey], normalizada: k });
+      } else {
+        idxA.set(k, { row: a, chaveOriginal: a[AKey], dupCount: 1, dups: [a[AKey]] });
+      }
+    });
+
+    atualizarProgresso(20, 0, rowsB.length, 'Casando chaves e preenchendo colunas...');
+    await new Promise(r => setTimeout(r, 30));
+
+    const totalB = rowsB.length;
+    let localizados = 0, naoLocalizados = 0, vazios = 0, duplicados = 0;
+
+    const cStatus = '📋 Status';
+    const cObs = '📝 Observação';
+    const cCodB = '🔑 Código em B';
+    const cCodA = '🔑 Código em A (match)';
+
+    state.linhaOriginalB = [];
+
+    const resultRows = rowsB.map((b, i) => {
+      const chaveBOriginal = b[BKey];
+      const chaveB = normKey(chaveBOriginal);
+      const novo = { ...b };
+      let status, obs, chaveAMatch = '';
+
+      const idxOriginalB = state.B.rows.indexOf(b);
+      state.linhaOriginalB.push(idxOriginalB);
+
+      if (!chaveB) {
+        pares.forEach(p => { novo[p.colB] = TEXTO_NAO_LOCALIZADO; });
+        status = 'VAZIO';
+        obs = '⚠️ Código vazio na Planilha B';
+        vazios++;
+      } else {
+        const itemA = idxA.get(chaveB);
+        if (itemA) {
+          pares.forEach(p => { novo[p.colB] = itemA.row[p.colA] ?? ''; });
+          chaveAMatch = itemA.chaveOriginal;
+          if (itemA.dupCount > 1) {
+            status = 'DUP';
+            obs = `🔁 Código existe ${itemA.dupCount}x em A — usando o último: "${itemA.chaveOriginal}"`;
+            duplicados++;
+            localizados++;
+          } else {
+            status = 'OK';
+            obs = `✅ Localizado (${chaveBOriginal} → ${itemA.chaveOriginal})`;
+            localizados++;
+          }
+        } else {
+          pares.forEach(p => { novo[p.colB] = TEXTO_NAO_LOCALIZADO; });
+          status = 'NAO';
+          obs = `❌ Código "${chaveBOriginal}" não existe na Planilha A`;
+          naoLocalizados++;
+        }
+      }
+
+      novo[cStatus] = status;
+      novo[cObs] = obs;
+      novo[cCodB] = chaveBOriginal;
+      novo[cCodA] = chaveAMatch;
+      novo['🎯 Tipo'] = status;
+
+      if (i % 200 === 0 || i === totalB - 1) {
+        atualizarProgresso(20 + ((i+1)/totalB)*80, i+1, totalB, `Linha ${i+1} de ${totalB}...`);
+      }
+      return novo;
+    });
+
+    const resultMeta = [];
+    state.B.headers.forEach(h => resultMeta.push({ name: h, origin: 'B' }));
+    resultMeta.push({ name: cCodB, origin: 'K' });
+    resultMeta.push({ name: cCodA, origin: 'K' });
+    resultMeta.push({ name: cStatus, origin: 'S' });
+    resultMeta.push({ name: cObs, origin: 'S' });
+    resultMeta.push({ name: '🎯 Tipo', origin: 'M' });
+
+    const resultHeaders = resultMeta.map(m => m.name);
+
+    state.resultRows = resultRows;
+    state.resultHeaders = resultHeaders;
+    state.resultMeta = resultMeta;
+    state.modoResultado = 'chave';
+
+    const total = resultRows.length;
+    document.getElementById('numEncontrados').textContent = localizados;
+    document.getElementById('pctEncontrados').textContent = total ? ((localizados/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('numNaoEncontrados').textContent = naoLocalizados;
+    document.getElementById('pctNaoEncontrados').textContent = total ? ((naoLocalizados/total)*100).toFixed(1)+'%' : '0%';
+    document.getElementById('numMunDiferente').textContent = vazios + duplicados;
+    document.getElementById('pctMunDiferente').textContent = total ? (((vazios+duplicados)/total)*100).toFixed(1)+'%' : '0%';
+
+    document.getElementById('stats').innerHTML =
+      `<div>Total B: <b>${total}</b></div>` +
+      `<div>✅ Localizados: <b style="color:#059669">${localizados}</b></div>` +
+      `<div>❌ Não localizados: <b style="color:#dc2626">${naoLocalizados}</b></div>` +
+      `<div>⚠️ Código vazio: <b style="color:#d97706">${vazios}</b></div>` +
+      `<div>🔁 Duplicados em A: <b style="color:#7c3aed">${duplicados}</b></div>` +
+      `<div>🔗 Pareamentos: <b>${pares.length}</b></div>`;
+
+    renderResultTable();
+    btnExportar.disabled = false;
+    finalizarProgresso();
+    toast(`✅ ${localizados} localizado(s) · ${naoLocalizados} não localizado(s).`);
+  } catch (err) {
+    console.error('[preencherPorChave] ERRO:', err);
+    erroProgresso(err.message || 'Erro desconhecido');
+    toast('Erro: ' + (err.message || 'Erro desconhecido'), 'erro');
+  } finally {
+    btn.disabled = false;
+    atualizarConfigBox();
+  }
+}
+
+/* ============================================================
+   EXPORTAR SOBRE A PLANILHA B ORIGINAL (COM FORMATAÇÃO)
+   ============================================================ */
+async function exportarSobreBOriginal() {
+  const btn = document.getElementById('btnExportarSobreB');
+  if (!state.arquivoBOriginal) { toast('Arquivo original da Planilha B não encontrado.', 'erro'); return; }
+  if (!state.resultRows.length) { toast('Rode primeiro o "Preencher B a partir de A".', 'erro'); return; }
+  if (!workbooks.B.sheetAtual) { toast('Nenhuma aba da Planilha B selecionada.', 'erro'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '📥 Gerando...';
+
+  try {
+    const infoB = workbooks.B;
+    const nomeAba = infoB.sheetAtual;
+    const nomeArquivo = infoB.fileName.replace(/\.(xlsx|xlsm|xlsb|xls)$/i, '');
+
+    const wbEx = new ExcelJS.Workbook();
+    await wbEx.xlsx.load(state.arquivoBOriginal.buffer || state.arquivoBOriginal);
+
+    const wsEx = wbEx.getWorksheet(nomeAba);
+    if (!wsEx) { toast(`Aba "${nomeAba}" não encontrada no arquivo original.`, 'erro'); btn.disabled = false; btn.textContent = '📥 Exportar sobre B original (com formatação)'; return; }
+
+    const info = workbooks.B;
+    const headerRowIdxXLSX = info.headerRowIdx;
+    const headerRowEx = headerRowIdxXLSX + 1;
+
+    const linhaHeader = wsEx.getRow(headerRowEx);
+    const mapaColunas = {};
+    linhaHeader.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const nome = String(cell.value ?? '').trim();
+      if (nome) mapaColunas[nome] = colNumber;
+    });
+
+    const colunasRecebe = state.colunas.BRecebe.filter(c => mapaColunas[c] !== undefined);
+    if (!colunasRecebe.length) {
+      toast('Nenhuma coluna de RECEBE mapeada no arquivo original.', 'erro');
+      btn.disabled = false; btn.textContent = '📥 Exportar sobre B original (com formatação)';
+      return;
+    }
+
+    const primeiraLinhaDadosEx = headerRowEx + 1;
+
+    state.resultRows.forEach((res, i) => {
+      const linhaEx = primeiraLinhaDadosEx + i;
+      colunasRecebe.forEach(nomeCol => {
+        const colEx = mapaColunas[nomeCol];
+        const cell = wsEx.getCell(linhaEx, colEx);
+        let valor = res[nomeCol];
+        if (valor === undefined || valor === null) valor = '';
+        if (typeof valor === 'number') {
+          cell.value = valor;
+        } else {
+          const num = typeof valor === 'string' ? valor.replace(/\./g,'').replace(',', '.') : NaN;
+          if (cell.value && typeof cell.value === 'object' && cell.value.result !== undefined && !isNaN(num)) {
+            cell.value = num;
+          } else if (!isNaN(num) && /^-?\d+(?:[.,]\d+)?$/.test(String(valor))) {
+            cell.value = Number(num);
+          } else {
+            cell.value = String(valor);
+          }
+        }
+        if (cell.value && typeof cell.value === 'object' && cell.value.formula) {
+          delete cell.value.formula;
+        }
+      });
+    });
+
+    colunasRecebe.forEach(nomeCol => {
+      const colEx = mapaColunas[nomeCol];
+      const colObj = wsEx.getColumn(colEx);
+      colObj.numFmt = '#.##0,00';
+    });
+
+    const buffer = await wbEx.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${nomeArquivo}_preenchido.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast(`✅ Arquivo "${nomeArquivo}_preenchido.xlsx" gerado com formatação preservada.`);
+  } catch (err) {
+    console.error('[exportarSobreBOriginal] ERRO:', err);
+    toast('Erro ao exportar: ' + (err.message || 'Erro desconhecido'), 'erro');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📥 Exportar sobre B original (com formatação)';
+  }
+}
+
+/* ============================================================
+   MODO FUZZY
+   ============================================================ */
+async function comparar() {
+  const btnComparar = document.getElementById('btnComparar');
+  const btnExportar = document.getElementById('btnExportar');
+  try {
+    const dict = parseDict(), stop = parseStop(), generic = parseGeneric();
+    const threshold = parseFloat(document.getElementById('threshold').value) || 0.62;
+    const thresholdSug = parseFloat(document.getElementById('thresholdSug').value) || 0.45;
+    const modoMun = document.getElementById('modoMun').value;
+    const { AMun, AEsc, AOut, BMun, BEsc } = state.colunas;
+    const usaMun = AMun && BMun, usaEsc = AEsc && BEsc;
+    if (!AOut) { toast('Marque SEC (saída) na Planilha A.', 'erro'); return; }
+    if (!usaMun && !usaEsc) { toast('Marque Município (A+B) ou Escola (A+B).', 'erro'); return; }
+
+    const rowsA = state.A.rows.filter((_, i) => !state.A.excluidas.has(i));
+    const rowsB = state.B.rows.filter((_, i) => !state.B.excluidas.has(i));
+    if (!rowsA.length || !rowsB.length) { toast('Planilhas vazias.', 'erro'); return; }
+
+    btnComparar.disabled = true; btnExportar.disabled = true;
+    mostrarProgresso();
+    await new Promise(r => setTimeout(r, 50));
+    atualizarProgresso(3, 0, rowsB.length, 'Normalizando A...');
+
+    const A = rowsA.map((r, i) => ({
+      idx: i, row: r, saida: r[AOut], nomeOriginal: AEsc ? r[AEsc] : '',
+      mun: usaMun ? normMun(r[AMun], dict) : '', munOriginal: AMun ? r[AMun] : '',
+      ...(usaEsc ? normalizar(r[AEsc], dict, stop, generic) : { full:'', tokens:[], dist:'', distTokens:[] })
+    }));
+    const idxMunExato = new Map();
+    if (usaMun) A.forEach(a => { if (!idxMunExato.has(a.mun)) idxMunExato.set(a.mun, []); idxMunExato.get(a.mun).push(a); });
+
+    atualizarProgresso(8, 0, rowsB.length, 'Normalizando B...');
+    const B = rowsB.map((r, i) => ({
+      idx: i, row: r, nomeOriginal: BEsc ? r[BEsc] : '',
+      mun: usaMun ? normMun(r[BMun], dict) : '', munOriginal: BMun ? r[BMun] : '',
+      ...(usaEsc ? normalizar(r[BEsc], dict, stop, generic) : { full:'', tokens:[], dist:'', distTokens:[] })
+    }));
+
+    const matcherCols = ['🏆 Código SEC (retorno)', '📊 Score', '🎯 Tipo'];
+    const aEscolaCol = '🔎 Planilha A - Escola';
+    const aMunCol = '🔎 Planilha A - Município';
+    const resultHeaders = []; const resultMeta = [];
+    state.B.headers.forEach(h => { resultHeaders.push(h); resultMeta.push({ name: h, origin: 'B' }); });
+    [aEscolaCol, aMunCol].forEach(h => { resultHeaders.push(h); resultMeta.push({ name: h, origin: 'A' }); });
+    matcherCols.forEach(h => { resultHeaders.push(h); resultMeta.push({ name: h, origin: 'M' }); });
+
+    const resultRows = [];
+    let exato = 0, fuzzy = 0, sub = 0, sug = 0, nomatch = 0, munDiferente = 0;
+    const totalB = B.length;
+    const pctInicio = 10, pctRange = 90;
+    const passo = Math.max(1, Math.floor(totalB / 100));
+
+    for (let bi = 0; bi < totalB; bi++) {
+      const b = B[bi];
+      let candidatos;
+      if (usaMun && modoMun !== 'ignorar') {
+        const exatosMun = idxMunExato.get(b.mun) || [];
+        if (exatosMun.length > 0) candidatos = exatosMun;
+        else if (modoMun === 'flexivel') candidatos = A.filter(a => municipioCompativel(a.mun, b.mun, 'flexivel'));
+        else candidatos = [];
+        if (!candidatos.length) {
+          munDiferente++;
+          resultRows.push({ ...b.row, [aEscolaCol]: '', [aMunCol]: '', '🏆 Código SEC (retorno)': '', '📊 Score': '0', '🎯 Tipo': 'SEM MATCH (município diferente)', '_ambiguidade': '' });
+          if (bi % passo === 0 || bi === totalB - 1) {
+            const pct = pctInicio + ((bi + 1) / totalB) * pctRange;
+            atualizarProgresso(pct, bi + 1, totalB, `Linha ${bi + 1} de ${totalB}...`);
+            if (bi % (passo * 10) === 0) await new Promise(r => setTimeout(r, 0));
+          }
+          continue;
+        }
+      } else candidatos = A;
+
+      let melhor = null, melhorScore = 0, melhorCamada = 'NENHUMA', segundoScore = 0;
+      for (let ai = 0; ai < candidatos.length; ai++) {
+        const a = candidatos[ai];
+        const res = usaEsc ? matchingCascata(a, b) : matchingPorMunicipio(a, b, modoMun);
+        if (res.score > melhorScore) { segundoScore = melhorScore; melhorScore = res.score; melhor = a; melhorCamada = res.camada; }
+        else if (res.score > segundoScore) segundoScore = res.score;
+      }
+      const ambiguidade = melhor && segundoScore > 0 && (melhorScore - segundoScore) < 0.02 && melhorScore < 0.97;
+      const novo = { ...b.row, [aEscolaCol]: melhor ? melhor.nomeOriginal : '', [aMunCol]: melhor ? melhor.munOriginal : '', '_ambiguidade': ambiguidade ? 'SIM' : '' };
+      if (melhor && melhorScore >= threshold && !ambiguidade) {
+        novo['🏆 Código SEC (retorno)'] = melhor.saida;
+        novo['📊 Score'] = melhorScore.toFixed(3);
+        const tipo = melhorCamada === 'EXATO' ? 'EXATO' : (melhorCamada === 'SUBSEQ' ? 'SUBSEQ' : 'FUZZY');
+        novo['🎯 Tipo'] = tipo;
+        if (tipo === 'EXATO') exato++; else if (tipo === 'SUBSEQ') sub++; else fuzzy++;
+      } else if (melhor && melhorScore >= thresholdSug) {
+        novo['🏆 Código SEC (retorno)'] = ''; novo['📊 Score'] = melhorScore.toFixed(3); novo['🎯 Tipo'] = 'SUGESTÃO'; sug++;
+      } else {
+        novo['🏆 Código SEC (retorno)'] = ''; novo['📊 Score'] = melhor ? melhorScore.toFixed(3) : '0'; novo['🎯 Tipo'] = 'SEM MATCH'; nomatch++;
+      }
+      resultRows.push(novo);
+      if (bi % passo === 0 || bi === totalB - 1) {
+        const pct = pctInicio + ((bi + 1) / totalB) * pctRange;
+        atualizarProgresso(pct, bi + 1, totalB, `Linha ${bi + 1} de ${totalB}...`);
+        if (bi % (passo * 10) === 0) await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    state.resultRows = resultRows;
+    state.resultHeaders = resultHeaders;
+    state.resultMeta = resultMeta;
+    state.modoResultado = 'fuzzy';
+    atualizarProgresso(100, totalB, totalB, 'Finalizando...');
+    renderStats(exato, fuzzy, sub, sug, nomatch, B.length, munDiferente);
+    renderResumoCards();
+    renderResultTable();
+    btnExportar.disabled = false;
+    finalizarProgresso();
+    toast('✅ Comparação concluída!');
+  } catch (err) {
+    console.error('[comparar] ERRO:', err);
+    erroProgresso(err.message || 'Erro desconhecido');
+    toast('Erro: ' + (err.message || 'Erro desconhecido'), 'erro');
+  } finally {
+    btnComparar.disabled = false;
+    atualizarConfigBox();
+  }
+}
+
+function renderResumoCards() {
+  const total = state.resultRows.length;
+  let encontrados = 0, munDif = 0;
+  state.resultRows.forEach(r => {
+    const tipo = r['🎯 Tipo'];
+    const codigo = r['🏆 Código SEC (retorno)'];
+    if (tipo === 'SEM MATCH (município diferente)') { munDif++; return; }
+    if (codigo !== undefined && codigo !== null && String(codigo).trim() !== '') encontrados++;
+  });
+  const naoEncontrados = total - encontrados - munDif;
+  const pct = n => total ? ((n / total) * 100).toFixed(1) + '%' : '0.0%';
+  document.getElementById('numEncontrados').textContent = encontrados;
+  document.getElementById('pctEncontrados').textContent = pct(encontrados);
+  document.getElementById('numNaoEncontrados').textContent = naoEncontrados;
+  document.getElementById('pctNaoEncontrados').textContent = pct(naoEncontrados);
+  document.getElementById('numMunDiferente').textContent = munDif;
+  document.getElementById('pctMunDiferente').textContent = pct(munDif);
+}
+
+/* ============================================================
+   IA
+   ============================================================ */
+async function rodarIA() {
+  const model = document.getElementById('aiModel').value;
+  const promptUser = document.getElementById('aiPrompt').value.trim();
+  const outputDiv = document.getElementById('aiOutput');
+  const apiKey = (API_KEYS[model] || '').trim();
+  if (!apiKey || apiKey.startsWith('COLE_AQUI')) return toast(`Configure a chave do ${model === 'gemini' ? 'Gemini' : 'OpenAI'}.`, 'erro');
+  if (!promptUser) return toast('Digite um prompt.', 'erro');
+  outputDiv.style.display = 'block';
+  outputDiv.textContent = '⌛ Processando...';
+  const contextoPrompt = `Dados atuais (Amostra 50 registros):\n${JSON.stringify(state.resultRows.slice(0, 50), null, 2)}\n\nInstrução:\n${promptUser}`;
+  try {
+    let resposta = '';
+    if (model === 'gemini') resposta = await chamarGemini(apiKey, contextoPrompt);
+    else if (model === 'openai') resposta = await chamarOpenAI(apiKey, contextoPrompt);
+    outputDiv.textContent = resposta;
+    toast('✅ Resposta gerada!');
+  } catch (err) {
+    outputDiv.textContent = '❌ Erro: ' + err.message;
+    toast('Erro na IA.', 'erro');
+  }
+}
+async function chamarGemini(key, promptText) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }) });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.candidates[0].content.parts[0].text;
+}
+async function chamarOpenAI(key, promptText) {
+  const url = 'https://api.openai.com/v1/chat/completions';
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` }, body: JSON.stringify({ model: 'gpt-4o-mini', messages: [{ role: 'user', content: promptText }] }) });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices[0].message.content;
+}
+
+/* ============================================================
+   RENDER RESULTADO
+   ============================================================ */
+function renderStats(ex, fz, sb, sg, nm, total, munDif) {
+  const ok = ex + fz + sb, pct = total ? ((ok / total) * 100).toFixed(1) : 0;
+  document.getElementById('stats').innerHTML =
+    `<div>Total B: <b>${total}</b></div>` +
+    `<div>✅ Exatos: <b>${ex}</b></div>` +
+    `<div>🟡 Fuzzy: <b>${fz}</b></div>` +
+    `<div>🟣 Subseq: <b>${sb}</b></div>` +
+    `<div>🔵 Sugestões: <b>${sg}</b></div>` +
+    `<div>❌ Sem match: <b>${nm}</b></div>` +
+    `<div>🚫 Município diferente: <b style="color:#991b1b">${munDif}</b></div>` +
+    `<div>📈 Cobertura: <b>${pct}%</b></div>`;
+}
+
+function tipoCls(t) {
+  if (t === 'EXATO') return 'exato';
+  if (t === 'FUZZY') return 'fuzzy';
+  if (t === 'SUBSEQ') return 'subseq';
+  if (t === 'SUGESTÃO') return 'sugestao';
+  if (t === 'SEM MATCH (município diferente)') return 'mun-diferente';
+  if (t === 'OK' || t === 'PREENCHIDO_POR_CHAVE') return 'preenchido';
+  if (t === 'NAO') return 'nao-localizado';
+  if (t === 'VAZIO') return 'codigo-vazio';
+  if (t === 'DUP') return 'preenchido';
+  return 'nomatch';
+}
+
+function badgeStatus(st) {
+  if (st === 'OK')    return '<span class="st st-ok">✅ LOCALIZADO</span>';
+  if (st === 'NAO')   return '<span class="st st-fail">❌ NÃO LOCALIZADO</span>';
+  if (st === 'VAZIO') return '<span class="st st-warn">⚠️ CÓDIGO VAZIO</span>';
+  if (st === 'DUP')   return '<span class="st st-dup">🔁 DUPLICADO</span>';
+  return esc(st ?? '');
+}
+
+function renderResultTable() {
+  const wrap = document.getElementById('tableWrap');
+  wrap.style.display = 'block';
+  const tbl = document.getElementById('resultTable');
+  const meta = state.resultMeta;
+
+  const countB = meta.filter(m => m.origin === 'B').length;
+  const countA = meta.filter(m => m.origin === 'A').length;
+  const countM = meta.filter(m => m.origin === 'M').length;
+  const countK = meta.filter(m => m.origin === 'K').length;
+  const countS = meta.filter(m => m.origin === 'S').length;
+
+  let grupoRow = '<tr class="grupo-row">';
+  if (countB > 0) grupoRow += `<th class="g-b" colspan="${countB}">📄 Planilha B (destino)</th>`;
+  if (countK > 0) grupoRow += `<th class="g-k" colspan="${countK}">🔑 Chave</th>`;
+  if (countA > 0) grupoRow += `<th class="g-a" colspan="${countA}">📄 Planilha A (fonte)</th>`;
+  if (countS > 0) grupoRow += `<th class="g-s" colspan="${countS}">📋 Status & Observação</th>`;
+  if (countM > 0) grupoRow += `<th class="g-m" colspan="${countM}">🎯 Resultado</th>`;
+  grupoRow += '</tr>';
+
+  let nomesRow = '<tr class="nomes-row">';
+  meta.forEach(m => {
+    const cls = m.origin === 'B' ? 'tb-b' : (m.origin === 'A' ? 'tb-a' : (m.origin === 'K' ? 'tb-k' : (m.origin === 'S' ? 'tb-s' : 'tb-m')));
+    const badgeCls = m.origin === 'B' ? 'b' : (m.origin === 'A' ? 'a' : (m.origin === 'K' ? 'k' : (m.origin === 'S' ? 's' : 'm')));
+    const badgeTxt = m.origin === 'B' ? 'B' : (m.origin === 'A' ? 'A' : (m.origin === 'K' ? '🔑' : (m.origin === 'S' ? '📋' : 'M')));
+    nomesRow += `<th class="${cls}"><span class="badge-origem ${badgeCls}">${badgeTxt}</span>${esc(m.name)}</th>`;
+  });
+  nomesRow += '</tr>';
+
+  const rows = state.resultRows.filter(r => passaFiltros(r));
+  let tbody = '<tbody>';
+  rows.forEach(r => {
+    tbody += `<tr class="${tipoCls(r['🎯 Tipo'])}">`;
+    meta.forEach(m => {
+      if (m.name === '📋 Status') {
+        tbody += `<td>${badgeStatus(r[m.name])}</td>`;
+      } else {
+        tbody += `<td>${esc(r[m.name] ?? '')}</td>`;
+      }
+    });
+    tbody += '</tr>';
+  });
+  tbody += '</tbody>';
+
+  tbl.innerHTML = `<thead>${grupoRow}${nomesRow}</thead>${tbody}`;
+
+  const total = state.resultRows.length;
+  document.getElementById('sbCount').innerHTML = `Mostrando <b>${rows.length}</b> de <b>${total}</b> linhas`;
+
+  renderColumnFilters(meta);
+}
+
+function passaFiltros(r) {
+  if (state.statusFilter) {
+    const tipo = r['🎯 Tipo'];
+    if (state.statusFilter === 'OK' && tipo !== 'OK') return false;
+    if (state.statusFilter === 'NAO' && tipo !== 'NAO') return false;
+    if (state.statusFilter === 'VAZIO' && tipo !== 'VAZIO') return false;
+    if (state.statusFilter === 'DUP' && tipo !== 'DUP') return false;
+  }
+  return Object.entries(resultColumnFilters).every(([col, vals]) => !vals.size || vals.has(String(r[col] ?? '')));
+}
+
+function renderColumnFilters(meta) {
+  const box = document.getElementById('columnFilters');
+  box.innerHTML = '';
+  meta.forEach(({name: col, origin}) => {
+    const values = [...new Set(state.resultRows.map(r => String(r[col] ?? '')).filter(v => v !== ''))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    if (values.length > 1000) return;
+    if (!resultColumnFilters[col]) resultColumnFilters[col] = new Set();
+    const selected = resultColumnFilters[col];
+    const badgeCls = origin === 'B' ? 'b' : (origin === 'A' ? 'a' : (origin === 'K' ? 'k' : (origin === 'S' ? 's' : 'm')));
+    const badgeTxt = origin === 'B' ? 'B' : (origin === 'A' ? 'A' : (origin === 'K' ? '🔑' : (origin === 'S' ? '📋' : 'M')));
+    const div = document.createElement('div'); div.className='multi-filter'; div.dataset.col=col;
+    div.innerHTML = `<button type="button" class="multi-filter-btn"><span class="badge-origem ${badgeCls}" style="margin-right:6px;">${badgeTxt}</span>🔽 ${esc(col)} <span class="mf-count"></span></button>
+      <div class="multi-filter-menu">
+        <input class="multi-filter-search" placeholder="🔍 procurar...">
+        <div class="multi-filter-actions"><button type="button" class="secondary mf-all">Marcar todos</button><button type="button" style="background:#6b7280" class="mf-none">Limpar</button></div>
+        <div class="multi-options"></div><div class="filtro-resumo"></div>
+      </div>`;
+    const opts=div.querySelector('.multi-options');
+    values.forEach(v=>{ const label=document.createElement('label'); label.className='multi-option'; label.dataset.value=v; label.innerHTML=`<input type="checkbox" ${selected.has(v)?'checked':''}> <span>${esc(v)}</span>`; opts.appendChild(label); });
+    const update=()=>{ div.querySelector('.mf-count').textContent=selected.size?`(${selected.size})`:''; div.querySelector('.filtro-resumo').textContent=selected.size?`${selected.size} selecionado(s)`:'Todos'; renderResultTableOnly(); };
+    div.querySelector('.multi-filter-btn').onclick=()=>div.classList.toggle('open');
+    div.querySelector('.mf-all').onclick=()=>{values.forEach(v=>selected.add(v)); opts.querySelectorAll('input').forEach(x=>x.checked=true); update();};
+    div.querySelector('.mf-none').onclick=()=>{selected.clear(); opts.querySelectorAll('input').forEach(x=>x.checked=false); update();};
+    opts.addEventListener('change',e=>{const v=e.target.closest('.multi-option').dataset.value;e.target.checked?selected.add(v):selected.delete(v);update();});
+    div.querySelector('.multi-filter-search').oninput=e=>{const q=e.target.value.toLowerCase();opts.querySelectorAll('.multi-option').forEach(o=>o.style.display=o.dataset.value.toLowerCase().includes(q)?'flex':'none');};
+    box.appendChild(div); update();
+  });
+}
+
+function renderResultTableOnly() {
+  const tbl=document.getElementById('resultTable');
+  const meta = state.resultMeta;
+  const rows=state.resultRows.filter(r => passaFiltros(r));
+
+  const countB = meta.filter(m => m.origin === 'B').length;
+  const countA = meta.filter(m => m.origin === 'A').length;
+  const countM = meta.filter(m => m.origin === 'M').length;
+  const countK = meta.filter(m => m.origin === 'K').length;
+  const countS = meta.filter(m => m.origin === 'S').length;
+
+  let grupoRow = '<tr class="grupo-row">';
+  if (countB > 0) grupoRow += `<th class="g-b" colspan="${countB}">📄 Planilha B (destino)</th>`;
+  if (countK > 0) grupoRow += `<th class="g-k" colspan="${countK}">🔑 Chave</th>`;
+  if (countA > 0) grupoRow += `<th class="g-a" colspan="${countA}">📄 Planilha A (fonte)</th>`;
+  if (countS > 0) grupoRow += `<th class="g-s" colspan="${countS}">📋 Status & Observação</th>`;
+  if (countM > 0) grupoRow += `<th class="g-m" colspan="${countM}">🎯 Resultado</th>`;
+  grupoRow += '</tr>';
+
+  let nomesRow = '<tr class="nomes-row">';
+  meta.forEach(m => {
+    const cls = m.origin === 'B' ? 'tb-b' : (m.origin === 'A' ? 'tb-a' : (m.origin === 'K' ? 'tb-k' : (m.origin === 'S' ? 'tb-s' : 'tb-m')));
+    const badgeCls = m.origin === 'B' ? 'b' : (m.origin === 'A' ? 'a' : (m.origin === 'K' ? 'k' : (m.origin === 'S' ? 's' : 'm')));
+    const badgeTxt = m.origin === 'B' ? 'B' : (m.origin === 'A' ? 'A' : (m.origin === 'K' ? '🔑' : (m.origin === 'S' ? '📋' : 'M')));
+    nomesRow += `<th class="${cls}"><span class="badge-origem ${badgeCls}">${badgeTxt}</span>${esc(m.name)}</th>`;
+  });
+  nomesRow += '</tr>';
+
+  let tbody = '<tbody>';
+  rows.forEach(r => {
+    tbody += `<tr class="${tipoCls(r['🎯 Tipo'])}">`;
+    meta.forEach(m => {
+      if (m.name === '📋 Status') {
+        tbody += `<td>${badgeStatus(r[m.name])}</td>`;
+      } else {
+        tbody += `<td>${esc(r[m.name] ?? '')}</td>`;
+      }
+    });
+    tbody += '</tr>';
+  });
+  tbody += '</tbody>';
+
+  tbl.innerHTML = `<thead>${grupoRow}${nomesRow}</thead>${tbody}`;
+
+  const total = state.resultRows.length;
+  document.getElementById('sbCount').innerHTML = `Mostrando <b>${rows.length}</b> de <b>${total}</b> linhas`;
+}
+
+function exportar() {
+  if (!state.resultRows.length) return;
+  const headers = state.resultHeaders.filter(h => !h.startsWith('_'));
+  const rows = state.resultRows.map(r => { const o = {}; headers.forEach(h => o[h] = r[h]); return o; });
+  const ws = XLSX.utils.json_to_sheet(rows), wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Resultado');
+  XLSX.writeFile(wb, 'resultado_comparacao.xlsx');
+}
+
+/* ============================================================
+   EVENTOS
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fileA').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    readFile(f, 'A');
+  });
+  document.getElementById('fileB').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    readFile(f, 'B');
+  });
+
+  document.getElementById('modalSheetSelect').addEventListener('change', e => {
+    if (!modalState.side) return;
+    carregarAbaNoModal(modalState.side, e.target.value);
+    toast(`📑 Aba "${e.target.value}" carregada no modal.`);
+  });
+
+  document.getElementById('btnTrocarAbaA').addEventListener('click', () => {
+    if (!workbooks.A.wb) return;
+    abrirModalSelecao('A', { primeiraCarga: false });
+  });
+  document.getElementById('btnTrocarAbaB').addEventListener('click', () => {
+    if (!workbooks.B.wb) return;
+    abrirModalSelecao('B', { primeiraCarga: false });
+  });
+  document.getElementById('btnTrocarColunasA').addEventListener('click', () => {
+    if (!workbooks.A.wb) return;
+    abrirModalSelecao('A', { primeiraCarga: false });
+  });
+  document.getElementById('btnTrocarColunasB').addEventListener('click', () => {
+    if (!workbooks.B.wb) return;
+    abrirModalSelecao('B', { primeiraCarga: false });
+  });
+
+  document.getElementById('btnLimparA').addEventListener('click', () => limparArquivo('A'));
+  document.getElementById('btnLimparB').addEventListener('click', () => limparArquivo('B'));
+
+  document.querySelectorAll('.preview-actions button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const side = btn.dataset.side, act = btn.dataset.act, st = state[side];
+      if (act === 'marcar-todas') { st.excluidas = new Set(); renderPreview(side); }
+      else if (act === 'desmarcar') { st.excluidas = new Set(st.rows.map((_, i) => i)); renderPreview(side); }
+      else if (act === 'limpar-espaco') aplicarLimpeza(side, 'espaco');
+      else if (act === 'limpar-especial') aplicarLimpeza(side, 'especial');
+      else if (act === 'limpar-tudo') aplicarLimpeza(side, 'tudo');
+      else if (act === 'desfazer') desfazerLimpeza(side);
+    });
+  });
+
+  document.getElementById('modalFechar').addEventListener('click', fecharModal);
+  document.getElementById('modalCancelar').addEventListener('click', fecharModal);
+  document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target.id === 'modalOverlay') fecharModal(); });
+  document.getElementById('modalMarcarTodas').addEventListener('click', () => { modalState.headers.forEach(h => modalState.selecionadas.add(h)); renderModalColunas(); });
+  document.getElementById('modalDesmarcarTodas').addEventListener('click', () => { modalState.selecionadas.clear(); renderModalColunas(); });
+  document.getElementById('modalSugestao').addEventListener('click', () => {
+    modalState.selecionadas = new Set();
+    modalState.headers.forEach(h => {
+      const tipo = modalState.deteccoes[h];
+      if (tipo === 'NTE' || tipo === 'MUNICIPIO' || tipo === 'ESCOLA' || tipo === 'CODIGO') modalState.selecionadas.add(h);
+    });
+    renderModalColunas();
+    toast('💡 Sugestão automática aplicada.');
+  });
+  document.getElementById('modalConfirmar').addEventListener('click', aplicarSelecaoModal);
+
+  document.getElementById('btnComparar').addEventListener('click', () => { resultColumnFilters = {}; comparar(); });
+  document.getElementById('btnPreencher').addEventListener('click', () => { resultColumnFilters = {}; preencherPorChave(); });
+  document.getElementById('btnLimparPreenchimento').addEventListener('click', () => {
+    state.pareamento = [];
+    atualizarConfigBox();
+    resetarProgresso();
+    toast('🧹 Pareamento limpo.');
+  });
+  document.getElementById('btnExportarSobreB').addEventListener('click', exportarSobreBOriginal);
+
+  document.getElementById('btnExportar').addEventListener('click', exportar);
+
+  document.getElementById('statusFilter').addEventListener('change', e => {
+    state.statusFilter = e.target.value;
+    renderResultTableOnly();
+  });
+
+  document.getElementById('btnRodarIA').addEventListener('click', rodarIA);
+});
+</script>
+</body>
+</html>
